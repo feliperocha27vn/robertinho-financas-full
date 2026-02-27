@@ -1,5 +1,5 @@
 import type { Decimal } from '@prisma/client/runtime/library'
-import { addMonths, endOfMonth, startOfMonth, subDays } from 'date-fns'
+import { addMonths, endOfMonth, startOfMonth } from 'date-fns'
 import { prisma } from '../../lib/prisma'
 
 interface AccountsPayableNextMonthReply {
@@ -33,9 +33,10 @@ export async function accountsPayableNextMonth(): Promise<AccountsPayableNextMon
       },
     },
     where: {
+      isPaid: false,
       dueDate: {
         gte: startOfMonth(addMonths(new Date(), 1)),
-        lte: subDays(endDateNextMonth, 10),
+        lte: endDateNextMonth,
       },
     },
   })

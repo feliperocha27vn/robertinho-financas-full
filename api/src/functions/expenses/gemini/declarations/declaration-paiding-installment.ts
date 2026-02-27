@@ -9,7 +9,7 @@ export const paidingInstallmentDeclaration = {
       name_expense: {
         type: 'string',
         description:
-          'O nome da despesa que o usuário deseja pagar a parcela. Extraia o nome do item do texto do usuário. Por exemplo, se o usuário disser "paguei a fatura do meu notebook", o valor deve ser "notebook".',
+          'O nome da despesa que o usuário deseja marcar a parcela como gapa. Extraia APENAS a palavra-chave principal do item. Ex: se o usuário disser "paguei a fatura do notebook novo", o valor deve ser estritamente "notebook". Se disser "já paguei a TV de 60 polegadas", retorne "TV".',
       },
       message: {
         type: 'string',

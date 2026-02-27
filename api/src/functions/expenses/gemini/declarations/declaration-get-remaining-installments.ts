@@ -10,7 +10,7 @@ export const getRemainingInstallmentsDeclaration = {
       name_expense: {
         type: 'string',
         description:
-          'Uma substring curta e representativa da despesa para busca parcial (lowercase, sem acentos quando possível). Exemplos: "mouse rapoo", "celular samsung", "aluguel". Evite palavras muito genéricas. O objetivo é permitir uma consulta por contains no banco.',
+          'Uma substring curta e MUITO EXCLUSIVA da despesa para busca parcial no banco de dados. Extraia APENAS a palavra-chave principal do item. Se o usuário disser "quantas parcelas faltam do projetor da sala", retorne "projetor". Evite palavras genéricas ou verbos (não use "celular samsung pago do cartao", use apenas "samsung").',
       },
     },
     required: ['name_expense'],

@@ -1,13 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
-import { DollarSign, MessageCircleDashed } from 'lucide-react-native';
-import { Text, TouchableOpacity, View } from "react-native";
+import { DollarSign } from 'lucide-react-native';
+import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getAccountPayableNextMonth } from '../api/account-payable-next-month';
 import Skeleton from '../components/Skeleton';
 
 export default function Index() {
-    const navigate = useRouter()
     const { data: totalPayableNextMonth, isLoading } = useQuery({
         queryKey: ['totalPayableNextMonth'],
         queryFn: getAccountPayableNextMonth
@@ -32,10 +30,6 @@ export default function Index() {
                     )}
                 </View>
             </View>
-            <TouchableOpacity className='flex-row items-center justify-between bg-amber-200 p-6 rounded-full' onPress={() => navigate.push('/chat')}>
-                <Text className='w-11/12'>Converse como Robertinho para poder, organizar suas finanças</Text>
-                <MessageCircleDashed size={24} color="#000" />
-            </TouchableOpacity>
         </SafeAreaView>
     )
 }

@@ -1,7 +1,7 @@
 export const getSumExpensesFixedDeclaration = {
   name: 'get_sum_expenses_fixed',
   description:
-    'Calcula e retorna a soma de todas as despesas marcadas como fixas. Esta função não recebe parâmetros e é usada para obter o valor total gasto em despesas recorrentes ou fixas.',
+    'Calcula e retorna a soma EXCLUSIVAMENTE de todas as despesas marcadas como FIXAS (aluguel, condomínio, internet). Esta função é usada QUANDO o usuário perguntar especificamente "qual o total das minhas despesas fixas?" ou "quanto gasto de contas fixas?".',
   parametersJsonSchema: {
     type: 'object',
     description:

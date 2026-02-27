@@ -26,6 +26,10 @@ export async function robertinhoDeFinancas(userInput: string) {
     config: {
       systemInstruction: `Você é o Robertinho Finanças, um assistente financeiro amigável e prestativo que ajuda usuários a registrar suas despesas em português do Brasil.
 
+                          INFORMAÇÃO DE CONTEXTO IMPORTANTE:
+                          - Data atual de hoje: ${new Date().toLocaleDateString('pt-BR')}
+                          - Considere o ano atual da data de hoje para qualquer cálculo ou presunção de data (ex: se o usuário disser "março", é o "março" deste ano ou do próximo dependendo da data atual).
+
                           Sua personalidade:
                           - Simpático e encorajador
                           - Usa linguagem casual e acessível
@@ -164,12 +168,26 @@ export async function robertinhoDeFinancas(userInput: string) {
   if (functionCall?.name === 'get_sum_expenses') {
     const message = functionCall.args?.message as string
 
-    // Executa a função para obter o total das despesas
-    const { totalExpenses } = await getSumExpenses()
+    // Executa a função para obter o total das despesas e a lista
+    const { totalExpenses, items } = await getSumExpenses()
     const formattedTotal = Number(totalExpenses).toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
     })
+
+    if (items && items.length > 0) {
+      const itemsList = items.map(item => {
+        const itemAmount = Number(item.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+        const installmentInfo = item.numberOfInstallments && item.numberOfInstallments > 1
+          ? ` (Parcelado em ${item.numberOfInstallments}x)`
+          : ''
+        return `• ${item.description}: ${itemAmount}${installmentInfo}`
+      }).join('\n')
+
+      return {
+        message: `Aqui estão os detalhes das suas despesas:\n\n${itemsList}\n\n💰 *Total Geral:* ${formattedTotal}`,
+      }
+    }
 
     return {
       message: message || `💰 Total das suas despesas: ${formattedTotal}`,
@@ -366,5 +384,11 @@ export async function robertinhoDeFinancas(userInput: string) {
     }
   }
 
-  throw new Error('Não foi possível processar a mensagem')
+  // Se chegou até aqui, logamos tudo o que o Gemini retornou para debugar.
+  console.error('Gemini retornou um conteúdo inesperado ou vazio:')
+  console.error(JSON.stringify(response.candidates?.[0], null, 2))
+
+  return {
+    message: 'Desculpe, eu não entendi o que você quis dizer ou me confundi com a sua solicitação. Pode repetir de outra forma?',
+  }
 }

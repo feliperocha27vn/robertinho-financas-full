@@ -9,16 +9,16 @@ export const createExpenseDeclaration = {
       description: {
         type: 'string',
         description: `Descrição curta e clara da despesa. 
-        Extraia do texto do usuário o que foi gasto.
-        Exemplos: "Uber para o trabalho", "Aluguel do apartamento", "Livro de programação", "Gasolina do carro"`,
+        Extraia ÚNICA E EXCLUSIVAMENTE o nome do item ou serviço gasto, sem verbos soltos ou textos extras.
+        Exemplos de extração correta: "Uber", "Aluguel", "Livro", "Gasolina".
+        Exemplos INCORRETOS: "Gastei com Uber", "Paguei o aluguel".`,
       },
       amount: {
         type: 'number',
-        description: `Valor da despesa em reais (R$).
-        Extraia o valor numérico mencionado pelo usuário.
-        Se o usuário disser "cinquenta reais", retorne 50.
-        Se disser "R$ 150,00", retorne 150.
-        Retorne apenas o número, sem símbolos ou formatação.`,
+        description: `Valor TOTAL da despesa gerada.
+        Extraia APENAS o formato numérico. Se o usuário usar vírgulas, converta para ponto flutuante.
+        Se informar "R$ 150,50" ou "cento e cinquenta reais e cinquenta centavos", retorne 150.50.
+        Nunca inclua textos ou cifrões (R$).`,
       },
       category: {
         type: 'string',
@@ -41,7 +41,7 @@ export const createExpenseDeclaration = {
       },
       isFixed: {
         type: 'boolean',
-        description: `Indica se a despesa é fixa (recorrente) ou variável. Exemplo: true para aluguel, false para compras únicas.`,
+        description: `Indica se a despesa é de natureza fixa/recorrente (como luz, água, internet, IPTU, aluguel, condomínio) ou variável (farmácia, lanche, ifood, uber, roupas). Retorne true para fixas e false para variáveis.`,
       },
     },
     required: ['description', 'amount', 'category', 'message', 'isFixed'],

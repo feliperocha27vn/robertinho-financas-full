@@ -2,30 +2,12 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import z from 'zod'
 import { robertinhoDeFinancas } from '../../functions/gemini/chat'
 
-// Schema para validar o payload do webhook da Evolution API
+// Schema para validar o payload do webhook da Evolution API de forma totalmente permissiva
 const webhookPayloadSchema = z.object({
-  event: z.string(),
-  instance: z.string(),
-  data: z.object({
-    key: z.object({
-      remoteJid: z.string(), // Número do remetente
-      fromMe: z.boolean(), // Se a mensagem foi enviada por nós
-      id: z.string(), // ID da mensagem
-    }),
-    message: z
-      .object({
-        conversation: z.string().optional(), // Texto da mensagem
-        extendedTextMessage: z
-          .object({
-            text: z.string(),
-          })
-          .optional(),
-      })
-      .optional(),
-    messageTimestamp: z.number(),
-    pushName: z.string().optional(), // Nome do contato
-  }),
-})
+  event: z.string().optional(),
+  instance: z.string().optional(),
+  data: z.any().optional(), // Tornando opcional para não quebrar se vier sem 'data'
+}).passthrough() // Permite qualquer outro campo não mapeado no objeto principal sem dar erro 400
 
 export const webhookRoute: FastifyPluginAsyncZod = async app => {
   // Endpoint para receber webhooks da Evolution API
@@ -48,20 +30,38 @@ export const webhookRoute: FastifyPluginAsyncZod = async app => {
     async (request, reply) => {
       const { event, instance, data } = request.body
 
-      console.log('🔗 Webhook recebido:', {
-        event,
-        instance,
-        fromNumber: data.key.remoteJid,
-        fromMe: data.key.fromMe,
-        pushName: data.pushName,
-      })
-
       try {
+        // Ignorar eventos que não sejam de mensagens para não causar erros (ex: atualização de contatos)
+        if (event !== 'messages.upsert' && event !== 'messages.update') {
+          return reply.status(200).send({
+            success: true,
+            message: `Evento ignorado: ${event}`,
+          })
+        }
+
+        if (!data || !data.key) {
+           return reply.status(200).send({
+            success: true,
+            message: 'Dados da mensagem ausentes. Ignorado.',
+          })
+        }
+
         // Só processar mensagens recebidas (não enviadas por nós)
         if (data.key.fromMe) {
           return reply.status(200).send({
             success: true,
             message: 'Mensagem ignorada (enviada por nós)',
+          })
+        }
+
+        // Restrição de número permitido
+        const allowedPhone = process.env.ALLOWED_PHONE_NUMBER
+        // O remoteJid no baileys geralmente tem o formato "5511999999999@s.whatsapp.net"
+        if (allowedPhone && !data.key.remoteJid.startsWith(allowedPhone)) {
+          console.log(`🚫 Mensagem ignorada: número ${data.key.remoteJid} não tem permissão.`)
+          return reply.status(200).send({
+            success: true,
+            message: 'Mensagem de número não autorizado ignorada',
           })
         }
 
@@ -85,11 +85,25 @@ export const webhookRoute: FastifyPluginAsyncZod = async app => {
         // Processar com o Robertinho Finanças
         const aiResponse = await robertinhoDeFinancas(messageText)
 
-        // Em vez de enviar pela Evolution API, retornamos a resposta gerada
-        // diretamente no corpo da resposta HTTP para facilitar integrações.
+        // Enviar a resposta via HTTP para a Evolution API
+        const evoUrl = process.env.EVOLUTION_API_URL || 'http://localhost:8080'
+        const evoApiKey = process.env.EVOLUTION_API_KEY || '429683C4C977415CAAFCCE10F7D57E11'
+
+        await fetch(`${evoUrl}/message/sendText/${instance}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: evoApiKey,
+          },
+          body: JSON.stringify({
+            number: data.key.remoteJid,
+            text: aiResponse.message,
+          }),
+        })
+
         return reply.status(200).send({
           success: true,
-          message: aiResponse.message,
+          message: 'Mensagem processada e respondida com sucesso',
         })
       } catch (error) {
         console.error('❌ Erro ao processar webhook:', error)
@@ -100,5 +114,3 @@ export const webhookRoute: FastifyPluginAsyncZod = async app => {
     }
   )
 }
-// Nota: a lógica de envio por Evolution API foi removida —
-// agora a rota retorna a mensagem gerada pelo Robertinho diretamente.
