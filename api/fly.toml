@@ -1,15 +1,12 @@
-# fly.toml app configuration file generated for click-proposta-api on 2025-09-12T18:48:14Z
+# fly.toml app configuration file generated for api-financas-full on 2026-02-28T15:24:23Z
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'mind-helping-api'
+app = 'api-financas-full'
 primary_region = 'gru'
 
 [build]
-
-[processes]
-  app = "./start.sh node dist/server.js"
 
 [http_service]
   internal_port = 3333
@@ -20,7 +17,7 @@ primary_region = 'gru'
   processes = ['app']
 
 [[vm]]
-  memory = '1gb'
+  memory_mb = 512
   cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 1024
+

@@ -1,32 +1,32 @@
-# Build stage
-FROM node:22-alpine AS build
+# Use the official Node.js 22 alpine image
+FROM node:22-alpine AS base
 
-# Instala pnpm globalmente
-RUN npm install -g pnpm
+# Enable pnpm via corepack
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
+# Set the working directory
 WORKDIR /app
 
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-# Install all dependencies (including dev dependencies)
-RUN pnpm install
+# Production dependencies stage
+FROM base AS prod-deps
+RUN pnpm install --prod --frozen-lockfile
 
-# Copy Prisma schema and generate client
-COPY prisma ./prisma/
-RUN pnpm prisma generate
-
-# Copy source code and config files
+# Build stage
+FROM base AS build
+RUN pnpm install --frozen-lockfile
 COPY . .
-
+# Generate Prisma client
+RUN pnpm prisma generate
 # Build the application
-RUN pnpm build
+RUN pnpm run build
 
 # Production stage
-FROM node:22-alpine AS production
-
-# Instala pnpm globalmente
-RUN npm install -g pnpm
+FROM base AS production
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
@@ -37,24 +37,17 @@ RUN adduser -S nodejs -u 1001
 
 WORKDIR /app
 
-# Copy package.json for production dependencies
-COPY package.json pnpm-lock.yaml ./
+# Copy production dependencies from prod-deps stage
+COPY --from=prod-deps /app/node_modules ./node_modules
 
-# Copy Prisma schema first
-COPY prisma ./prisma/
+# Copy Prisma schema
+COPY --from=build /app/prisma ./prisma
 
-# Install only production dependencies (now includes prisma CLI)
-RUN pnpm install --prod
-
-# Generate Prisma Client
-RUN pnpm prisma generate
+# Generate Prisma client for production
+RUN npx -y prisma@6.16.3 generate
 
 # Copy built application from build stage
 COPY --from=build /app/dist ./dist
-
-# Copy the start script
-COPY start.sh ./
-RUN chmod +x start.sh
 
 # Change ownership to nodejs user
 RUN chown -R nodejs:nodejs /app
@@ -70,5 +63,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start the application with migrations
-CMD ["./start.sh", "node", "dist/server.js"]
+# Start the application
+CMD ["node", "dist/server.js"]

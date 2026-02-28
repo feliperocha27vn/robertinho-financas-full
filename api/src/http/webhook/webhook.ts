@@ -81,15 +81,20 @@ export const webhookRoute: FastifyPluginAsyncZod = async app => {
         }
 
         console.log('💬 Processando mensagem:', messageText)
+        console.log('⏳ Enviando contexto para o Gemini...')
 
         // Processar com o Robertinho Finanças (passando o número para manter o contexto)
         const aiResponse = await robertinhoDeFinancas(messageText, data.key.remoteJid)
 
+        console.log('🤖 Resposta do Gemini:', aiResponse.message)
+
         // Enviar a resposta via HTTP para a Evolution API
-        const evoUrl = process.env.EVOLUTION_API_URL || 'http://localhost:8080'
+        const evoUrl = (process.env.EVOLUTION_API_URL || 'http://localhost:8080').replace(/\/$/, '')
         const evoApiKey = process.env.EVOLUTION_API_KEY || '429683C4C977415CAAFCCE10F7D57E11'
 
-        await fetch(`${evoUrl}/message/sendText/${instance}`, {
+        console.log(`📤 Enviando resposta para Evolution API em: ${evoUrl}/message/sendText/${instance} para o número ${data.key.remoteJid}`)
+
+        const evoResponse = await fetch(`${evoUrl}/message/sendText/${instance}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -100,6 +105,9 @@ export const webhookRoute: FastifyPluginAsyncZod = async app => {
             text: aiResponse.message,
           }),
         })
+
+        const evoResponseText = await evoResponse.text().catch(() => 'No text')
+        console.log(`✅ Evolution API Status: ${evoResponse.status} | Body:`, evoResponseText)
 
         return reply.status(200).send({
           success: true,
