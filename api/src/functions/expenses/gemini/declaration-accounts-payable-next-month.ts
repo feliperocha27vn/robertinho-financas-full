@@ -6,7 +6,12 @@ export const accountsPayableNextMonthDeclaration = {
     type: 'object',
     description:
       'Parâmetros para obter a lista de contas a pagar do próximo mês.',
-    properties: {},
-    required: [],
+    properties: {
+      message: {
+        type: 'string',
+        description: 'Gere uma mensagem amigável confirmando que está buscando as contas do próximo mês.',
+      },
+    },
+    required: ['message'],
   },
 }

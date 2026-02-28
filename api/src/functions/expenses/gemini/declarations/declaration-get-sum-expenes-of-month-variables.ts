@@ -5,7 +5,12 @@ export const getSumExpensesOfMonthVariablesDeclaration = {
   parametersJsonSchema: {
     type: 'object',
     description: 'Parâmetros para obter o somatório das despesas do mês.',
-    properties: {},
-    required: [],
+    properties: {
+      message: {
+        type: 'string',
+        description: 'Mensagem confirmando que está somando os gastos variáveis deste mês. Ex: "Deixe-me somar seus gastos deste mês..."',
+      },
+    },
+    required: ['message'],
   },
 }

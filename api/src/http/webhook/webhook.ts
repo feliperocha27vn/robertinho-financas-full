@@ -82,8 +82,8 @@ export const webhookRoute: FastifyPluginAsyncZod = async app => {
 
         console.log('💬 Processando mensagem:', messageText)
 
-        // Processar com o Robertinho Finanças
-        const aiResponse = await robertinhoDeFinancas(messageText)
+        // Processar com o Robertinho Finanças (passando o número para manter o contexto)
+        const aiResponse = await robertinhoDeFinancas(messageText, data.key.remoteJid)
 
         // Enviar a resposta via HTTP para a Evolution API
         const evoUrl = process.env.EVOLUTION_API_URL || 'http://localhost:8080'

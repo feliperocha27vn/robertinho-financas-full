@@ -6,7 +6,12 @@ export const getSumExpensesFixedDeclaration = {
     type: 'object',
     description:
       'Parâmetros para buscar a soma das despesas fixas. Nenhum parâmetro é necessário.',
-    properties: {},
-    required: [],
+    properties: {
+      message: {
+        type: 'string',
+        description: 'Mensagem confirmando que está somando as despesas fixas.',
+      },
+    },
+    required: ['message'],
   },
 }
