@@ -15,18 +15,8 @@ export function useSendWebhookMessage() {
     setError(null)
     try {
       const payload = {
-        event: 'message',
-        instance: 'mobile',
-        data: {
-          key: {
-            remoteJid: 'mobile-client',
-            fromMe: false,
-            id: Date.now().toString(),
-          },
-          message: { extendedTextMessage: { text: messageText } },
-          messageTimestamp: Math.floor(Date.now() / 1000),
-          pushName: 'Mobile User',
-        },
+        text: messageText,
+        phone: 'mobile-client' // Valor default para a sessão do app
       }
 
       const res = await api.post('/webhook', payload)
