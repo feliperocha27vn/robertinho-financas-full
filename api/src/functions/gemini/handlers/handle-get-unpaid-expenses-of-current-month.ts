@@ -16,14 +16,14 @@ export async function handleGetUnpaidExpensesOfCurrentMonth(args: Record<string,
           style: 'currency',
           currency: 'BRL',
         })
-        return `🔹 **${item.description}**: ${itemAmount}`
+        return `🔹 ${item.description}: ${itemAmount}`
       })
       .join('\n')
 
     return {
       message:
-        message ? `${message}\n\n📌 **Contas Pendentes Neste Mês:**\n\n${itemsList}\n\n💰 **Total a Pagar:** ${formattedTotal}` :
-        `📌 **Contas Pendentes Neste Mês:**\n\n${itemsList}\n\n💰 **Total a Pagar:** ${formattedTotal}`,
+        message ? `${message}\n\n📌 Contas Pendentes Neste Mês:\n\n${itemsList}\n\n💰 Total a Pagar: ${formattedTotal}` :
+        `📌 Contas Pendentes Neste Mês:\n\n${itemsList}\n\n💰 Total a Pagar: ${formattedTotal}`,
     }
   }
 

@@ -16,17 +16,14 @@ export async function handlePaidingAllUnpaidCurrentMonth(args: Record<string, an
 
     return {
       message:
-        message ? `${message}\n\n✅ **Tudo Quitado!**\n\nMaravilha! Dei baixa em ${paidCount} contas/parcelas pendentes deste mês. Você está com as finanças em dia! 🚀` :
-        `✅ **Tudo Quitado!**\n\nMaravilha! Dei baixa em ${paidCount} contas/parcelas pendentes deste mês. Você está com as finanças em dia! 🚀`,
+        message ? `${message}\n\n✅ Tudo Quitado!\n\nMaravilha! Dei baixa em ${paidCount} contas/parcelas pendentes deste mês. Você está com as finanças em dia! 🚀` :
+        `✅ Tudo Quitado!\n\nMaravilha! Dei baixa em ${paidCount} contas/parcelas pendentes deste mês. Você está com as finanças em dia! 🚀`,
     }
-  } catch (err: unknown) {
-    const errorMessage =
-      err && typeof err === 'object' && 'message' in err
-        ? (err as { message?: string }).message
-        : undefined
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : null
 
     return {
-      message: `❌ **Erro ao Pagar Todas as Contas!**\n\n${errorMessage || 'Ocorreu um erro interno. Tente novamente mais tarde.'}`,
+      message: `❌ Erro ao Pagar Todas as Contas!\n\n${errorMessage || 'Ocorreu um erro interno. Tente novamente mais tarde.'}`,
     }
   }
 }

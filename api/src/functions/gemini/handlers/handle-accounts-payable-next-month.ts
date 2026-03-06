@@ -12,7 +12,7 @@ export async function handleAccountsPayableNextMonth(args: Record<string, any> |
   const itemsText = items
     .map(
       (a: { description: string; amount: Decimal }) =>
-        `🔹 **${a.description}**: ${Number(a.amount).toLocaleString('pt-BR', {
+        `🔹 ${a.description}: ${Number(a.amount).toLocaleString('pt-BR', {
           style: 'currency',
           currency: 'BRL',
         })}`
@@ -27,6 +27,6 @@ export async function handleAccountsPayableNextMonth(args: Record<string, any> |
   })
 
   return {
-    message: message ? `${message}\n\n📅 **Contas a Pagar no Próximo Mês**\n\n${itemsText}\n\n💰 **Total Estimado:** ${formattedTotal}` : `📅 **Contas a Pagar no Próximo Mês**\n\n${itemsText}\n\n💰 **Total Estimado:** ${formattedTotal}`,
+    message: message ? `${message}\n\n📅 Contas a Pagar no Próximo Mês\n\n${itemsText}\n\n💰 Total Estimado: ${formattedTotal}` : `📅 Contas a Pagar no Próximo Mês\n\n${itemsText}\n\n💰 Total Estimado: ${formattedTotal}`,
   }
 }

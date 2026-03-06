@@ -16,15 +16,15 @@ export async function handleGetSumExpenses(args: Record<string, any> | undefined
       const installmentInfo = item.numberOfInstallments && item.numberOfInstallments > 1
         ? ` (Parcelado em ${item.numberOfInstallments}x)`
         : ''
-      return `🔹 **${item.description}**: ${itemAmount}${installmentInfo}`
+      return `🔹 ${item.description}: ${itemAmount}${installmentInfo}`
     }).join('\n')
 
     return {
-      message: message ? `${message}\n\n📌 **Lista de Todas as Suas Despesas:**\n\n${itemsList}\n\n💰 **Total Geral:** ${formattedTotal}` : `📌 **Lista de Todas as Suas Despesas:**\n\n${itemsList}\n\n💰 **Total Geral:** ${formattedTotal}`,
+      message: message ? `${message}\n\n📌 Lista de Todas as Suas Despesas:\n\n${itemsList}\n\n💰 Total Geral: ${formattedTotal}` : `📌 Lista de Todas as Suas Despesas:\n\n${itemsList}\n\n💰 Total Geral: ${formattedTotal}`,
     }
   }
 
   return {
-    message: message ? `${message}\n\n💰 **Total das suas despesas:** ${formattedTotal}` : `💰 **Total das suas despesas:** ${formattedTotal}`,
+    message: message ? `${message}\n\n💰 Total das suas despesas: ${formattedTotal}` : `💰 Total das suas despesas: ${formattedTotal}`,
   }
 }

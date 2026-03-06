@@ -16,7 +16,7 @@ export async function handleGetRemainingInstallments(args: Record<string, any> |
 
   if (!found) {
     return {
-      message: `😕 **Não Encontrado!**\n\nNão achei nenhuma despesa parcelada parecida com "${name_expense}".\n💡 *Dica: Tente usar parte do nome ou outra palavra-chave (ex: "mouse rapoo").*`,
+      message: `😕 Não Encontrado!\n\nNão achei nenhuma despesa parcelada parecida com "${name_expense}".\n💡 Dica: Tente usar parte do nome ou outra palavra-chave (ex: "mouse rapoo").`,
     }
   }
 
@@ -35,6 +35,6 @@ export async function handleGetRemainingInstallments(args: Record<string, any> |
     : undefined
 
   return {
-    message: `🔎 **Parcelas Encontradas:** "${expenseDescription}"\n\n📋 **Restantes:** ${remainingInstallments} parcela(s)${formattedPerInstallment ? `\n💸 **Valor Aproximado:** ${formattedPerInstallment} por parcela` : ''}${formattedTotal ? `\n💰 **Total Restante:** ${formattedTotal}` : ''}`,
+    message: `🔎 Parcelas Encontradas: "${expenseDescription}"\n\n📋 Restantes: ${remainingInstallments} parcela(s)${formattedPerInstallment ? `\n💸 Valor Aproximado: ${formattedPerInstallment} por parcela` : ''}${formattedTotal ? `\n💰 Total Restante: ${formattedTotal}` : ''}`,
   }
 }

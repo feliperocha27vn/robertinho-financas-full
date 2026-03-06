@@ -16,6 +16,6 @@ export async function handleCreateNewRecipe(args: Record<string, any> | undefine
   })
 
   return {
-    message: `🎉 **Nova Receita Registrada!**\n\n📈 **Origem:** ${description}\n💰 **Valor:** ${formattedAmount}`,
+    message: `🎉 Nova Receita Registrada!\n\n📈 Origem: ${description}\n💰 Valor: ${formattedAmount}`,
   }
 }

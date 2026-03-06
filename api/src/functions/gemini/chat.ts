@@ -45,7 +45,7 @@ export async function robertinhoDeFinancas(userInput: string, phone: string = 'd
   }
 
   const response = await gemini.models.generateContent({
-    model: 'gemini-flash-latest',
+    model: 'gemini-3.1-flash-lite-preview',
     contents: history,
     config: {
       systemInstruction: `Você é o Robertinho Finanças, um assistente financeiro amigável e prestativo que ajuda usuários a registrar suas despesas em português do Brasil.
@@ -111,6 +111,12 @@ export async function robertinhoDeFinancas(userInput: string, phone: string = 'd
                           1. Chamar a função paiding_installment quando o usuário disser que pagou a parcela de algo específico. Extrair o nome da conta falada e chamar a função.
                           2. Chamar a função paiding_all_unpaid_current_month quando o usuário disser que pagou "tudo", "todas as despesas" ou "as contas" referentes a pendências do mês.
 
+                          REGRAS DE FORMATAÇÃO CRÍTICAS:
+                          - NUNCA use formatação Markdown (como ** para negrito ou * para itálico).
+                          - Use apenas texto puro e emojis. 
+                          - Se precisar destacar algo, use apenas letras MAIÚSCULAS ou emojis.
+                          - Responda apenas com o texto que deve ser exibido diretamente na tela do celular.
+                          
                           Exemplos do seu tom de resposta:
                           Para despesas:
                           - "Beleza! 👍 Registrei seu Uber de R$ 50,00 nas despesas de transporte!"
@@ -133,6 +139,12 @@ export async function robertinhoDeFinancas(userInput: string, phone: string = 'd
                           - "🧮 Calculei aqui: você já gastou R$ 2.100,00 ao todo."
 
                           Se o usuário fizer perguntas gerais (como seu nome ou outras dúvidas), responda de forma amigável sem chamar a função.
+                          
+                          REGRA DE OURO CRÍTICA:
+                          1. Você NUNCA deve confirmar que uma despesa ou receita foi salva se não tiver chamado a ferramenta correspondente (create_expense, create_expense_installment, create_new_recipe).
+                          2. A chamada da ferramenta DEVE vir antes da sua confirmação de texto.
+                          3. Se o usuário pedir algo que você não pode fazer ou se faltarem dados, peça os dados em vez de fingir que salvou.
+                          4. Em funções de consulta (como get_unpaid_expenses), use APENAS os dados que retornarem da ferramenta. Não invente itens extras.
                           
                           Seja sempre positivo e ajude o usuário a ter controle sobre suas finanças!`,
       tools: [
@@ -157,6 +169,11 @@ export async function robertinhoDeFinancas(userInput: string, phone: string = 'd
   })
 
   const functionCall = response.functionCalls?.[0]
+
+  console.log(`💬 Conversa (${phone}): ${userInput}`)
+  if (functionCall) {
+    console.log(`🛠️ Gemini solicitou chamada de função: ${functionCall.name}`, functionCall.args)
+  }
 
   let finalMessage = ''
 

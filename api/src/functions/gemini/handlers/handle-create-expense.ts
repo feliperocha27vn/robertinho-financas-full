@@ -39,14 +39,14 @@ export async function handleCreateExpense(args: Record<string, any> | undefined)
   if (isFixed) {
     return {
       message:
-        message ? `${message}\n\n✅ **Despesa Fixa Registrada!**\n\n📝 **Descrição:** ${description}\n💸 **Valor:** ${formattedAmount}` :
-        `✅ **Despesa Fixa Registrada!**\n\n📝 **Descrição:** ${description}\n💸 **Valor:** ${formattedAmount}`,
+        message ? `${message}\n\n✅ Despesa Fixa Registrada!\n\n📝 Descrição: ${description}\n💸 Valor: ${formattedAmount}` :
+        `✅ Despesa Fixa Registrada!\n\n📝 Descrição: ${description}\n💸 Valor: ${formattedAmount}`,
     }
   }
 
   return {
     message:
-      message ? `${message}\n\n✅ **Despesa Registrada!**\n\n🏷️ **Categoria:** ${categoryLabel}\n💸 **Valor:** ${formattedAmount}` :
-      `✅ **Despesa Registrada!**\n\n🏷️ **Categoria:** ${categoryLabel}\n💸 **Valor:** ${formattedAmount}`,
+      message ? `${message}\n\n✅ Despesa Registrada!\n\n🏷️ Categoria: ${categoryLabel}\n💸 Valor: ${formattedAmount}` :
+      `✅ Despesa Registrada!\n\n🏷️ Categoria: ${categoryLabel}\n💸 Valor: ${formattedAmount}`,
   }
 }

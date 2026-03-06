@@ -18,19 +18,19 @@ export async function handleGetSumExpensesOfLastMonthVariables(args: Record<stri
       const installmentInfo = item.numberOfInstallments && item.numberOfInstallments > 1
         ? ` (Parcelado em ${item.numberOfInstallments}x)`
         : ''
-      return `🔹 **${item.description}**: ${itemAmount}${installmentInfo}`
+      return `🔹 ${item.description}: ${itemAmount}${installmentInfo}`
     }).join('\n')
 
     return {
       message:
-        message ? `${message}\n\n📌 **Lista de Despesas Variáveis do Mês Passado:**\n\n${itemsList}\n\n💰 **Total Variável:** ${formattedTotal}` :
-        `📌 **Lista de Despesas Variáveis do Mês Passado:**\n\n${itemsList}\n\n💰 **Total Variável:** ${formattedTotal}`,
+        message ? `${message}\n\n📌 Lista de Despesas Variáveis do Mês Passado:\n\n${itemsList}\n\n💰 Total Variável: ${formattedTotal}` :
+        `📌 Lista de Despesas Variáveis do Mês Passado:\n\n${itemsList}\n\n💰 Total Variável: ${formattedTotal}`,
     }
   }
 
   return {
     message:
-      message ? `${message}\n\n💰 **Total das suas despesas variáveis no mês passado:** ${formattedTotal}` :
-      `💰 **Total das suas despesas variáveis no mês passado:** ${formattedTotal}`,
+      message ? `${message}\n\n💰 Total das suas despesas variáveis no mês passado: ${formattedTotal}` :
+      `💰 Total das suas despesas variáveis no mês passado: ${formattedTotal}`,
   }
 }

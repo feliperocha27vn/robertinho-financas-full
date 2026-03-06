@@ -9,21 +9,23 @@ export async function handleGetSumExpensesFixed(args: Record<string, any> | unde
     currency: 'BRL',
   })
 
-  if (items && items.length > 0) {
+  const detailed = items && items.length > 0
+
+  if (detailed) {
     const itemsList = items.map(item => {
       const itemAmount = Number(item.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
       const installmentInfo = item.numberOfInstallments && item.numberOfInstallments > 1
         ? ` (Parcelado em ${item.numberOfInstallments}x)`
         : ''
-      return `🔹 **${item.description}**: ${itemAmount}${installmentInfo}`
+      return `🔹 ${item.description}: ${itemAmount}${installmentInfo}`
     }).join('\n')
 
     return {
-      message: message ? `${message}\n\n📌 **Lista de Despesas Fixas:**\n\n${itemsList}\n\n🏠 **Total Fixo:** ${formattedTotal}` : `📌 **Lista de Despesas Fixas:**\n\n${itemsList}\n\n🏠 **Total Fixo:** ${formattedTotal}`,
+      message: message ? `${message}\n\n📌 Lista de Despesas Fixas:\n\n${itemsList}\n\n🏠 Total Fixo: ${formattedTotal}` : `📌 Lista de Despesas Fixas:\n\n${itemsList}\n\n🏠 Total Fixo: ${formattedTotal}`,
     }
   }
 
   return {
-    message: message ? `${message}\n\n🏠 **Total das suas despesas fixas:** ${formattedTotal}` : `🏠 **Total das suas despesas fixas:** ${formattedTotal}`,
+    message: message ? `${message}\n\n🏠 Total das suas despesas fixas: ${formattedTotal}` : `🏠 Total das suas despesas fixas: ${formattedTotal}`,
   }
 }

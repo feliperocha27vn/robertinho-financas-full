@@ -24,7 +24,7 @@ export async function handleCreateExpenseInstallment(args: Record<string, any> |
 
   return {
     message:
-      message ? `${message}\n\n✅ **Despesa Parcelada Registrada!**\n\n🛍️ **Item:** ${description}\n💸 **Valor Total:** ${formattedAmount}\n💳 **Parcelas:** ${numberOfInstallments}x\n📅 **Primeira Parcela:** ${firstDueDate.toLocaleDateString('pt-BR')}` :
-      `✅ **Despesa Parcelada Registrada!**\n\n🛍️ **Item:** ${description}\n💸 **Valor Total:** ${formattedAmount}\n💳 **Parcelas:** ${numberOfInstallments}x\n📅 **Primeira Parcela:** ${firstDueDate.toLocaleDateString('pt-BR')}`,
+      message ? `${message}\n\n✅ Despesa Parcelada Registrada!\n\n🛍️ Item: ${description}\n💸 Valor Total: ${formattedAmount}\n💳 Parcelas: ${numberOfInstallments}x\n📅 Primeira Parcela: ${firstDueDate.toLocaleDateString('pt-BR')}` :
+      `✅ Despesa Parcelada Registrada!\n\n🛍️ Item: ${description}\n💸 Valor Total: ${formattedAmount}\n💳 Parcelas: ${numberOfInstallments}x\n📅 Primeira Parcela: ${firstDueDate.toLocaleDateString('pt-BR')}`,
   }
 }

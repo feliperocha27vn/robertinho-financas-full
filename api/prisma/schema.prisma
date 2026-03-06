@@ -7,24 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum TransactionType {
-  TRANSPORT
-  OTHERS
-  STUDIES
-  RESIDENCE
-  CREDIT
-}
-
 model Expenses {
   id                   String          @id @default(uuid()) @db.Uuid
   description          String
   amount               Decimal         @db.Decimal(10, 2)
   category             TransactionType
+  createdAt            DateTime        @default(now()) @db.Timestamptz(6)
   isFixed              Boolean         @default(false)
   numberOfInstallments Int?
-
-  createdAt    DateTime       @default(now()) @db.Timestamptz(6)
-  Installments Installments[]
+  Installments         Installments[]
 
   @@map("expenses")
 }
@@ -33,23 +24,28 @@ model Installments {
   id                        String   @id @default(uuid()) @db.Uuid
   isPaid                    Boolean  @default(false)
   dueDate                   DateTime @db.Date
+  expensesId                String   @map("expenses_id") @db.Uuid
+  createdAt                 DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt                 DateTime @updatedAt @db.Timestamptz(6)
   valueInstallmentOfExpense Decimal  @map("value_installment_of_expense") @db.Decimal(10, 2)
-
-  expense    Expenses @relation(fields: [expensesId], references: [id], onDelete: Cascade)
-  expensesId String   @map("expenses_id") @db.Uuid
-
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  expense                   Expenses @relation(fields: [expensesId], references: [id], onDelete: Cascade)
 
   @@map("installments")
 }
 
 model Recipes {
-  id          String  @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid()) @db.Uuid
   description String
-  amount      Decimal @db.Decimal(10, 2)
-
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  amount      Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
 
   @@map("recipes")
+}
+
+enum TransactionType {
+  TRANSPORT
+  OTHERS
+  STUDIES
+  RESIDENCE
+  CREDIT
 }
