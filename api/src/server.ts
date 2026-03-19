@@ -1,4 +1,5 @@
 import { app } from './app'
+import { startDiscordBot } from './discord'
 
 app
   .listen({
@@ -7,4 +8,5 @@ app
   })
   .then(() => {
     console.log('HTTP server running 🦅')
+    startDiscordBot()
   })

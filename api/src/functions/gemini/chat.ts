@@ -11,6 +11,8 @@ import { paidingAllUnpaidCurrentMonthDeclaration } from '../expenses/gemini/decl
 import { paidingInstallmentDeclaration } from '../expenses/gemini/declarations/declaration-paiding-installment'
 import { getUnpaidExpensesOfCurrentMonthDeclaration } from '../expenses/gemini/declarations/declaration-unpaid-expenses-of-current-month'
 import { createNewRecipeDeclaration } from '../recipes/declarations/declaration-create-new-recipe'
+import { getAllRemainingInstallmentsDeclaration } from '../expenses/gemini/declarations/declaration-get-all-remaining-installments'
+import { unpayExpenseDeclaration } from '../expenses/gemini/declarations/declaration-unpay-expense'
 
 import { handleAccountsPayableNextMonth } from './handlers/handle-accounts-payable-next-month'
 import { handleCreateExpense } from './handlers/handle-create-expense'
@@ -24,6 +26,8 @@ import { handleGetSumExpensesOfMonthVariables } from './handlers/handle-get-sum-
 import { handleGetUnpaidExpensesOfCurrentMonth } from './handlers/handle-get-unpaid-expenses-of-current-month'
 import { handlePaidingAllUnpaidCurrentMonth } from './handlers/handle-paiding-all-unpaid-current-month'
 import { handlePaidingInstallment } from './handlers/handle-paiding-installment'
+import { handleGetAllRemainingInstallments } from './handlers/handle-get-all-remaining-installments'
+import { handleUnpayExpense } from './handlers/handle-unpay-expense'
 
 type ConversationContent = { role: 'user' | 'model'; parts: { text: string }[] }
 
@@ -31,10 +35,10 @@ type ConversationContent = { role: 'user' | 'model'; parts: { text: string }[] }
 const conversations = new Map<string, ConversationContent[]>()
 
 export async function robertinhoDeFinancas(userInput: string, phone: string = 'default') {
+  const history = conversations.get(phone) ?? []
   if (!conversations.has(phone)) {
-    conversations.set(phone, [])
+    conversations.set(phone, history)
   }
-  const history = conversations.get(phone)!
 
   // Adiciona a nova mensagem do usuário no final do histórico
   history.push({ role: 'user', parts: [{ text: userInput }] })
@@ -70,9 +74,11 @@ export async function robertinhoDeFinancas(userInput: string, phone: string = 'd
                           7. Descrever uma receita/entrada de dinheiro - use create_new_recipe
                           8. Perguntar quais contas tem para pagar no próximo mês - use accounts_payable_next_month
                           9. Perguntar quais contas tem para pagar neste mês (em aberto/pendentes) - use get_unpaid_expenses_of_current_month
-                          10. Perguntar quantas parcelas faltam para pagar de uma compra - use get_remaining_installments
-                          11. Informar que pagou/quitou a parcela de UMA compra específica - use paiding_installment
-                          12. Informar que pagou TODAS as despesas abertas ou afirmar "já paguei tudo / todas as despesas" deste mês - use paiding_all_unpaid_current_month
+                          10. Perguntar quantas parcelas faltam para pagar de uma compra específica - use get_remaining_installments
+                          11. Perguntar quais compras parceladas ainda tem (todas as parcelas pendentes) - use get_all_remaining_installments
+                          12. Informar que pagou/quitou a parcela de UMA compra específica - use paiding_installment
+                          13. Informar que pagou TODAS as despesas abertas ou afirmar "já paguei tudo / todas as despesas" deste mês - use paiding_all_unpaid_current_month
+                          14. Informar que se equivocou e que ainda não pagou uma conta específica ou quer desmarcar o pagamento de uma despesa - use unpay_expense
                           
                           Para despesas novas:
                           1. Extrair a descrição clara do que foi gasto
@@ -104,12 +110,14 @@ export async function robertinhoDeFinancas(userInput: string, phone: string = 'd
                           4. Chamar a função get_sum_expenses_of_last_month_variables para total de variáveis do mês passado
                           5. Chamar accounts_payable_next_month quando o usuário quiser saber o que precisa pagar no mês que vem
                           6. Chamar get_unpaid_expenses_of_current_month quando quiser saber o que falta pagar ou o que tem para pagar neste mês atual
-                          7. Chamar get_remaining_installments ao perguntar quantas parcelas faltam
-                          8. Apresentar o valor/lista de forma amigável
+                          7. Chamar get_remaining_installments ao perguntar quantas parcelas faltam para algo específico.
+                          8. Chamar get_all_remaining_installments quando o usuário perguntar quais despesas parceladas ele ainda tem ou o que ele ainda está pagando.
+                          9. Apresentar o valor/lista de forma amigável
                           
                           Para pagamento de contas:
                           1. Chamar a função paiding_installment quando o usuário disser que pagou a parcela de algo específico. Extrair o nome da conta falada e chamar a função.
                           2. Chamar a função paiding_all_unpaid_current_month quando o usuário disser que pagou "tudo", "todas as despesas" ou "as contas" referentes a pendências do mês.
+                          3. Chamar a função unpay_expense quando o usuário disser que se equivocou, que "ainda não pagou" algo específico ou quiser corrigir um status de pagamento.
 
                           REGRAS DE FORMATAÇÃO CRÍTICAS:
                           - NUNCA use formatação Markdown (como ** para negrito ou * para itálico).
@@ -144,7 +152,16 @@ export async function robertinhoDeFinancas(userInput: string, phone: string = 'd
                           1. Você NUNCA deve confirmar que uma despesa ou receita foi salva se não tiver chamado a ferramenta correspondente (create_expense, create_expense_installment, create_new_recipe).
                           2. A chamada da ferramenta DEVE vir antes da sua confirmação de texto.
                           3. Se o usuário pedir algo que você não pode fazer ou se faltarem dados, peça os dados em vez de fingir que salvou.
-                          4. Em funções de consulta (como get_unpaid_expenses), use APENAS os dados que retornarem da ferramenta. Não invente itens extras.
+                          5. Em funções de consulta (como get_unpaid_expenses), use APENAS os dados que retornarem da ferramenta. Não invente itens extras.
+                          
+                          ZERO FAKING POLICY:
+                          - Você NUNCA deve confirmar uma ação no texto (usando o parâmetro 'message' de uma função ou respondendo apenas com texto) se não tiver chamado a ferramenta de MODIFICAÇÃO correspondente (create_expense, unpay_expense, paiding_installment, etc.).
+                          - Se o usuário pedir para listar e também desmarcar algo, você DEVE chamar a ferramenta de desmarcar ANTES da ferramenta de listagem.
+                          
+                          MULTIPLAS ENTIDADES E CHAMADAS:
+                          - Se o usuário mencionar várias despesas ou ações em uma única mensagem (ex: "paguei a internet e o projetor"), você DEVE emitir MULTIPLAS chamadas de ferramentas (uma para cada item) na mesma resposta.
+                          - Exemplo: "paguei luz e água" -> [paiding_installment(luz), paiding_installment(água)].
+                          - SEMPRE priorize ferramentas de AÇÃO/MODIFICAÇÃO antes de ferramentas de CONSULTA se o usuário pedir ambos.
                           
                           Seja sempre positivo e ajude o usuário a ter controle sobre suas finanças!`,
       tools: [
@@ -162,63 +179,79 @@ export async function robertinhoDeFinancas(userInput: string, phone: string = 'd
             getRemainingInstallmentsDeclaration,
             paidingInstallmentDeclaration,
             paidingAllUnpaidCurrentMonthDeclaration,
+            getAllRemainingInstallmentsDeclaration,
+            unpayExpenseDeclaration,
           ],
         },
       ],
     },
   })
 
-  const functionCall = response.functionCalls?.[0]
+  const functionCalls = response.functionCalls
 
   console.log(`💬 Conversa (${phone}): ${userInput}`)
-  if (functionCall) {
-    console.log(`🛠️ Gemini solicitou chamada de função: ${functionCall.name}`, functionCall.args)
+  if (functionCalls && functionCalls.length > 0) {
+    console.log(`🛠️ Gemini solicitou ${functionCalls.length} chamada(s) de função.`)
   }
 
   let finalMessage = ''
+  const responseMessages: string[] = []
 
-  if (functionCall) {
-    switch (functionCall.name) {
-      case 'create_expense':
-        finalMessage = (await handleCreateExpense(functionCall.args)).message
-        break
-      case 'get_sum_expenses':
-        finalMessage = (await handleGetSumExpenses(functionCall.args)).message
-        break
-      case 'get_sum_expenses_fixed':
-        finalMessage = (await handleGetSumExpensesFixed(functionCall.args)).message
-        break
-      case 'get_sum_expenses_of_month_variables':
-        finalMessage = (await handleGetSumExpensesOfMonthVariables(functionCall.args)).message
-        break
-      case 'get_sum_expenses_of_last_month_variables':
-        finalMessage = (await handleGetSumExpensesOfLastMonthVariables(functionCall.args)).message
-        break
-      case 'accounts_payable_next_month':
-        finalMessage = (await handleAccountsPayableNextMonth(functionCall.args)).message
-        break
-      case 'get_unpaid_expenses_of_current_month':
-        finalMessage = (await handleGetUnpaidExpensesOfCurrentMonth(functionCall.args)).message
-        break
-      case 'create_new_recipe':
-        finalMessage = (await handleCreateNewRecipe(functionCall.args)).message
-        break
-      case 'get_remaining_installments':
-        finalMessage = (await handleGetRemainingInstallments(functionCall.args)).message
-        break
-      case 'paiding_installment':
-        finalMessage = (await handlePaidingInstallment(functionCall.args)).message
-        break
-      case 'paiding_all_unpaid_current_month':
-        finalMessage = (await handlePaidingAllUnpaidCurrentMonth(functionCall.args)).message
-        break
-      case 'create_expense_installment':
-        finalMessage = (await handleCreateExpenseInstallment(functionCall.args)).message
-        break
-      default:
-        console.warn(`Unrecognized function call: ${functionCall.name}`)
-        finalMessage = 'Desculpe, eu não entendi qual ação realizar.'
+  if (functionCalls && functionCalls.length > 0) {
+    for (const call of functionCalls) {
+      console.log(`  - Executando: ${call.name}`, call.args)
+      let resultMessage = ''
+
+      switch (call.name) {
+        case 'create_expense':
+          resultMessage = (await handleCreateExpense(call.args)).message
+          break
+        case 'get_sum_expenses':
+          resultMessage = (await handleGetSumExpenses(call.args)).message
+          break
+        case 'get_sum_expenses_fixed':
+          resultMessage = (await handleGetSumExpensesFixed(call.args)).message
+          break
+        case 'get_sum_expenses_of_month_variables':
+          resultMessage = (await handleGetSumExpensesOfMonthVariables(call.args)).message
+          break
+        case 'get_sum_expenses_of_last_month_variables':
+          resultMessage = (await handleGetSumExpensesOfLastMonthVariables(call.args)).message
+          break
+        case 'accounts_payable_next_month':
+          resultMessage = (await handleAccountsPayableNextMonth(call.args)).message
+          break
+        case 'get_unpaid_expenses_of_current_month':
+          resultMessage = (await handleGetUnpaidExpensesOfCurrentMonth(call.args)).message
+          break
+        case 'create_new_recipe':
+          resultMessage = (await handleCreateNewRecipe(call.args)).message
+          break
+        case 'get_remaining_installments':
+          resultMessage = (await handleGetRemainingInstallments(call.args)).message
+          break
+        case 'paiding_installment':
+          resultMessage = (await handlePaidingInstallment(call.args)).message
+          break
+        case 'paiding_all_unpaid_current_month':
+          resultMessage = (await handlePaidingAllUnpaidCurrentMonth(call.args)).message
+          break
+        case 'create_expense_installment':
+          resultMessage = (await handleCreateExpenseInstallment(call.args)).message
+          break
+        case 'get_all_remaining_installments':
+          resultMessage = (await handleGetAllRemainingInstallments()).message
+          break
+        case 'unpay_expense':
+          resultMessage = (await handleUnpayExpense(call.args)).message
+          break
+        default:
+          console.warn(`Unrecognized function call: ${call.name}`)
+          resultMessage = 'Desculpe, eu não entendi qual ação realizar.'
+      }
+      responseMessages.push(resultMessage)
     }
+    finalMessage = responseMessages.join('\n\n')
   } else {
     // Extrai apenas as partes de texto da resposta
     const textParts = response.candidates?.[0]?.content?.parts
