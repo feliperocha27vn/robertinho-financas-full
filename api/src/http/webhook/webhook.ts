@@ -1,6 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import z from 'zod'
-import { robertinhoDeFinancas } from '../../functions/gemini/chat'
+import { getContainer } from '../../container'
 
 // Schema simplificado para o App Mobile
 const chatPayloadSchema = z.object({
@@ -27,12 +27,12 @@ export const webhookRoute: FastifyPluginAsyncZod = async app => {
       },
     },
     async (request, reply) => {
-       const { text, phone } = request.body
+      const { text, phone } = request.body
 
       try {
         if (!text) {
           return reply.status(400).send({
-             error: 'Texto da mensagem não pode ser vazio.',
+            error: 'Texto da mensagem não pode ser vazio.',
           })
         }
 
@@ -40,7 +40,10 @@ export const webhookRoute: FastifyPluginAsyncZod = async app => {
         console.log('⏳ Enviando contexto para o Gemini...')
 
         // Chama a IA do Robertinho (o histórico é mantido pela chave "phone")
-        const aiResponse = await robertinhoDeFinancas(text, phone)
+        const aiResponse = await getContainer().processMessage.execute({
+          sessionId: phone,
+          text,
+        })
 
         console.log('🤖 Resposta do Gemini:', aiResponse.message)
 

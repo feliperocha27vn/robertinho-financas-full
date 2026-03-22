@@ -1,6 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import z from 'zod'
-import { getHomeData } from '../../functions/summary/get-home-data'
+import { getContainer } from '../../container'
 
 export const getHomeDataController: FastifyPluginAsyncZod = async app => {
   app.get(
@@ -27,7 +27,7 @@ export const getHomeDataController: FastifyPluginAsyncZod = async app => {
     },
     async (_, reply) => {
       try {
-        const data = await getHomeData()
+        const data = await getContainer().getHomeData.execute()
         return reply.status(200).send(data)
       } catch (error) {
         console.error(error)

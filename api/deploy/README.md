@@ -15,8 +15,7 @@ Como usar o `docker-compose.yaml` (VPS)
 ```
 ROBERTINHO_POSTGRES_PASSWORD=uma_senha_forte
 GOOGLE_API_KEY=xxxxx
-EVOLUTION_POSTGRES_PASSWORD=uma_senha_forte2
-API_KEY=seu_api_key_para_evolution
+TELEGRAM_BOT_TOKEN=seu_token_do_telegram
 ```
 
 3. Suba os serviços:
@@ -34,7 +33,7 @@ docker compose logs -f robertinho-api
 
 Usando Coolify
 - No painel do Coolify: crie uma nova aplicação e cole o conteúdo do `docker-compose.yaml`.
-- Defina as variáveis obrigatórias no UI (por exemplo `DATABASE_URL`, `ROBERTINHO_POSTGRES_PASSWORD`, `GOOGLE_API_KEY`, `API_KEY`).
+- Defina as variáveis obrigatórias no UI (por exemplo `DATABASE_URL`, `ROBERTINHO_POSTGRES_PASSWORD`, `GOOGLE_API_KEY`, `TELEGRAM_BOT_TOKEN`).
 - Configure domínios e ative TLS (Let's Encrypt) via UI.
 
 Notas sobre migrations e Prisma

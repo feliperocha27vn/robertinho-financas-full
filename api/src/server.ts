@@ -1,5 +1,5 @@
 import { app } from './app'
-import { startDiscordBot } from './discord'
+import { startTelegramBot } from './telegram'
 
 app
   .listen({
@@ -8,5 +8,5 @@ app
   })
   .then(() => {
     console.log('HTTP server running 🦅')
-    startDiscordBot()
+    startTelegramBot()
   })

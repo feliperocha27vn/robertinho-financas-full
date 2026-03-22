@@ -1,6 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import z from 'zod'
-import { accountsToPayByDayFifteen } from '../../functions/expenses/accounts-to-pay-by-day-fifteen'
+import { getContainer } from '../../container'
 
 export const accountsPayableNextMonthController: FastifyPluginAsyncZod =
   async app => {
@@ -18,7 +18,7 @@ export const accountsPayableNextMonthController: FastifyPluginAsyncZod =
       async (_, reply) => {
         try {
           const { totalAmountForPayByDayFifteen } =
-            await accountsToPayByDayFifteen()
+            await getContainer().accountsToPayByDayFifteen.execute()
 
           return reply.status(200).send({ totalAmountForPayByDayFifteen })
         } catch (error) {
