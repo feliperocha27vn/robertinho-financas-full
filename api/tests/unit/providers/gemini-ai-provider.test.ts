@@ -1,52 +1,60 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { GeminiAiProvider } from '../../../src/providers/ai/gemini-ai-provider'
 
 describe('GeminiAiProvider', () => {
-  it('maps basic intents from text', async () => {
-    const provider = new GeminiAiProvider()
+  it('calls Gemini with structured output schema and maps JSON response', async () => {
+    const generateContent = vi.fn().mockResolvedValue({
+      text: JSON.stringify({
+        intent: 'create_expense',
+        description: 'ifood',
+        amount: 50,
+        category: 'OTHERS',
+        isFixed: false,
+      }),
+    })
 
-    await expect(provider.parseMessage('registrar receita')).resolves.toEqual(
-      expect.objectContaining({ intent: 'create_new_recipe' })
-    )
-    await expect(provider.parseMessage('compra parcelada')).resolves.toEqual(
-      expect.objectContaining({ intent: 'create_expense_installment' })
-    )
-    await expect(provider.parseMessage('registrar despesa')).resolves.toEqual(
-      expect.objectContaining({ intent: 'create_expense' })
-    )
-  })
+    const provider = new GeminiAiProvider({
+      client: {
+        models: {
+          generateContent,
+        },
+      } as any,
+    })
 
-  it('extracts amount, installments and first due date', async () => {
-    const provider = new GeminiAiProvider()
+    const result = await provider.parseMessage('Gastei 50 no ifood', 'idle')
 
-    const result = await provider.parseMessage(
-      'comprei notebook parcelado em 10x de R$ 4.500,50 primeira parcela 15/04/2026'
-    )
-
-    expect(result.intent).toBe('create_expense_installment')
-    expect(result.amount).toBe(4500.5)
-    expect(result.numberOfInstallments).toBe(10)
-    expect(result.firstDueDate).toBeInstanceOf(Date)
-    expect(result.firstDueDate?.toISOString()).toContain('2026-04-15')
-  })
-
-  it('detects expense status change intents', async () => {
-    const provider = new GeminiAiProvider()
-
-    await expect(provider.parseMessage('quitei internet')).resolves.toEqual(
+    expect(generateContent).toHaveBeenCalledWith(
       expect.objectContaining({
-        intent: 'pay_installment',
-        nameExpense: 'internet',
+        model: 'gemini-2.5-flash',
+        config: expect.objectContaining({
+          responseMimeType: 'application/json',
+          responseJsonSchema: expect.any(Object),
+        }),
       })
     )
 
-    await expect(
-      provider.parseMessage('ainda nao paguei internet')
-    ).resolves.toEqual(
+    expect(result).toEqual(
       expect.objectContaining({
-        intent: 'unpay_expense',
-        nameExpense: 'internet',
+        intent: 'create_expense',
+        description: 'ifood',
+        amount: 50,
+        category: 'OTHERS',
+        isFixed: false,
       })
+    )
+  })
+
+  it('returns unknown on invalid JSON', async () => {
+    const provider = new GeminiAiProvider({
+      client: {
+        models: {
+          generateContent: vi.fn().mockResolvedValue({ text: 'not-json' }),
+        },
+      } as any,
+    })
+
+    await expect(provider.parseMessage('ola', 'idle')).resolves.toEqual(
+      expect.objectContaining({ intent: 'unknown' })
     )
   })
 })

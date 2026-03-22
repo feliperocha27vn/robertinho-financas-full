@@ -1,309 +1,179 @@
+import { GoogleGenAI, Type } from '@google/genai'
 import type { AiProvider, ParsedAssistantCommand } from './ai-provider'
 
-function normalizeText(input: string): string {
-  return input
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-}
+const model = 'gemini-2.5-flash'
 
-function toNumber(raw: string): number {
-  if (raw.includes(',') && raw.includes('.')) {
-    return Number(raw.replace(/\./g, '').replace(',', '.'))
-  }
+const responseJsonSchema = {
+  type: Type.OBJECT,
+  properties: {
+    intent: {
+      type: Type.STRING,
+      enum: [
+        'greeting',
+        'create_expense',
+        'create_expense_installment',
+        'create_new_recipe',
+        'get_sum_expenses',
+        'get_sum_expenses_fixed',
+        'get_sum_expenses_of_month_variables',
+        'get_sum_expenses_of_last_month_variables',
+        'accounts_payable_next_month',
+        'get_unpaid_expenses_of_current_month',
+        'get_remaining_installments',
+        'get_all_remaining_installments',
+        'pay_installment',
+        'pay_all_unpaid_current_month',
+        'unpay_expense',
+        'unknown',
+      ],
+    },
+    description: { type: Type.STRING, nullable: true },
+    amount: { type: Type.NUMBER, nullable: true },
+    category: {
+      type: Type.STRING,
+      enum: ['TRANSPORT', 'OTHERS', 'STUDIES', 'RESIDENCE', 'CREDIT'],
+      nullable: true,
+    },
+    isFixed: { type: Type.BOOLEAN, nullable: true },
+    numberOfInstallments: { type: Type.INTEGER, nullable: true },
+    nameExpense: { type: Type.STRING, nullable: true },
+    firstDueDate: {
+      type: Type.STRING,
+      description: 'Data ISO 8601. Exemplo: 2026-04-15T00:00:00.000Z',
+      nullable: true,
+    },
+  },
+  required: ['intent'],
+} as const
 
-  if (raw.includes(',')) {
-    return Number(raw.replace(',', '.'))
-  }
-
-  return Number(raw)
-}
-
-function extractDate(input: string): Date | undefined {
-  const match = input.match(/\b(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?\b/)
-  if (!match) {
-    return undefined
-  }
-
-  const day = Number(match[1])
-  const month = Number(match[2])
-
-  if (day < 1 || day > 31 || month < 1 || month > 12) {
-    return undefined
-  }
-
-  const currentYear = new Date().getFullYear()
-  const rawYear = match[3]
-  const year = rawYear
-    ? rawYear.length === 2
-      ? 2000 + Number(rawYear)
-      : Number(rawYear)
-    : currentYear
-
-  const date = new Date(Date.UTC(year, month - 1, day))
-  if (Number.isNaN(date.getTime())) {
-    return undefined
-  }
-
-  return date
-}
-
-function extractInstallments(input: string): number | undefined {
-  const patterns = [/\b(\d{1,3})\s*x\b/i, /\b(\d{1,3})\s*parcelas?\b/i]
-
-  for (const pattern of patterns) {
-    const match = input.match(pattern)
-    if (match?.[1]) {
-      const value = Number(match[1])
-      if (value > 1) {
-        return value
+interface GeminiClient {
+  models: {
+    generateContent(args: {
+      model: string
+      contents: string
+      config: {
+        responseMimeType: 'application/json'
+        responseJsonSchema: typeof responseJsonSchema
       }
-    }
+    }): Promise<{ text?: string }>
   }
-
-  return undefined
 }
 
-function extractAmount(input: string): number | undefined {
-  const currencyRegex =
-    /(?:r\$\s*)(\d{1,3}(?:\.\d{3})*(?:,\d{1,2})|\d+(?:[.,]\d{1,2})?)/gi
-  const currencyMatches = Array.from(input.matchAll(currencyRegex))
-  if (currencyMatches.length > 0) {
-    const value = currencyMatches[currencyMatches.length - 1][1]
-    return toNumber(value)
+function safeJsonParse(text?: string): Record<string, unknown> {
+  if (!text) {
+    return { intent: 'unknown' }
   }
 
-  const genericRegex =
-    /\b\d{1,3}(?:\.\d{3})*(?:,\d{1,2})\b|\b\d+(?:\.\d{1,2})?\b/g
-  const numberMatches = Array.from(input.matchAll(genericRegex))
-    .map(match => ({
-      value: match[0],
-      index: match.index ?? 0,
-    }))
-    .filter(({ index }) => {
-      const nextChar = input[index + 1]
-      const prevChar = input[index - 1]
-      if (nextChar?.toLowerCase() === 'x' || prevChar?.toLowerCase() === 'x') {
-        return false
-      }
-      return true
-    })
-
-  if (numberMatches.length === 0) {
-    return undefined
+  try {
+    return JSON.parse(text)
+  } catch {
+    return { intent: 'unknown' }
   }
-
-  const parsed = numberMatches
-    .map(({ value }) => toNumber(value))
-    .filter(value => !Number.isNaN(value))
-
-  if (parsed.length === 0) {
-    return undefined
-  }
-
-  return parsed.reduce((max, value) => (value > max ? value : max), parsed[0])
 }
 
-function cleanNameExpense(input: string, expressions: string[]): string {
-  let result = input
-  for (const expression of expressions) {
-    result = result.replace(expression, '')
-  }
+function asParsedCommand(
+  payload: Record<string, unknown>
+): ParsedAssistantCommand {
+  const allowedIntents = new Set<ParsedAssistantCommand['intent']>([
+    'greeting',
+    'create_expense',
+    'create_expense_installment',
+    'create_new_recipe',
+    'get_sum_expenses',
+    'get_sum_expenses_fixed',
+    'get_sum_expenses_of_month_variables',
+    'get_sum_expenses_of_last_month_variables',
+    'accounts_payable_next_month',
+    'get_unpaid_expenses_of_current_month',
+    'get_remaining_installments',
+    'get_all_remaining_installments',
+    'pay_installment',
+    'pay_all_unpaid_current_month',
+    'unpay_expense',
+    'unknown',
+  ])
 
-  return result.replace(/\s+/g, ' ').trim()
-}
+  const intent =
+    typeof payload.intent === 'string' &&
+    allowedIntents.has(payload.intent as ParsedAssistantCommand['intent'])
+      ? (payload.intent as ParsedAssistantCommand['intent'])
+      : 'unknown'
 
-function extractDescription(input: string): string {
-  const cleaned = input
-    .replace(
-      /\b(gastei|despesa|receita|registrar|cadastrar|comprei|compra|paguei)\b/gi,
-      ''
-    )
-    .replace(/\br\$\s*\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?\b/gi, '')
-    .replace(/\b\d+\s*x\b/gi, '')
-    .replace(/\b\d+\s*parcelas?\b/gi, '')
-    .replace(/[,:;.!?]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
+  const firstDueDate =
+    typeof payload.firstDueDate === 'string' && payload.firstDueDate.length > 0
+      ? new Date(payload.firstDueDate)
+      : undefined
 
-  return cleaned || input.trim()
-}
-
-function inferCategory(input: string): ParsedAssistantCommand['category'] {
-  const text = normalizeText(input)
-  if (
-    text.includes('uber') ||
-    text.includes('onibus') ||
-    text.includes('transporte')
-  ) {
-    return 'TRANSPORT'
+  return {
+    intent,
+    description:
+      typeof payload.description === 'string' ? payload.description : undefined,
+    amount: typeof payload.amount === 'number' ? payload.amount : undefined,
+    category:
+      payload.category === 'TRANSPORT' ||
+      payload.category === 'OTHERS' ||
+      payload.category === 'STUDIES' ||
+      payload.category === 'RESIDENCE' ||
+      payload.category === 'CREDIT'
+        ? payload.category
+        : undefined,
+    isFixed: typeof payload.isFixed === 'boolean' ? payload.isFixed : undefined,
+    numberOfInstallments:
+      typeof payload.numberOfInstallments === 'number'
+        ? payload.numberOfInstallments
+        : undefined,
+    nameExpense:
+      typeof payload.nameExpense === 'string' ? payload.nameExpense : undefined,
+    firstDueDate:
+      firstDueDate && !Number.isNaN(firstDueDate.getTime())
+        ? firstDueDate
+        : undefined,
   }
-  if (
-    text.includes('aluguel') ||
-    text.includes('moradia') ||
-    text.includes('internet')
-  ) {
-    return 'RESIDENCE'
-  }
-  if (
-    text.includes('curso') ||
-    text.includes('livro') ||
-    text.includes('estudo')
-  ) {
-    return 'STUDIES'
-  }
-  if (
-    text.includes('cartao') ||
-    text.includes('fatura') ||
-    text.includes('credito')
-  ) {
-    return 'CREDIT'
-  }
-  return 'OTHERS'
 }
 
 export class GeminiAiProvider implements AiProvider {
-  async parseMessage(input: string): Promise<ParsedAssistantCommand> {
-    const normalized = normalizeText(input)
-    const amount = extractAmount(input)
-    const date = extractDate(input)
-    const installments = extractInstallments(input)
-    const description = extractDescription(input)
+  private readonly client: GeminiClient
 
-    if (date && !normalized.includes('parcel')) {
-      return {
-        intent: 'unknown',
-        firstDueDate: date,
-      }
+  constructor(params?: { client?: GeminiClient; apiKey?: string }) {
+    if (params?.client) {
+      this.client = params.client
+      return
     }
 
-    if (
-      normalized.includes('paguei tudo') ||
-      normalized.includes('paguei todas') ||
-      normalized.includes('ja paguei tudo') ||
-      normalized.includes('quitei tudo')
-    ) {
-      return { intent: 'pay_all_unpaid_current_month' }
+    const apiKey = params?.apiKey ?? process.env.GEMINI_API_KEY
+
+    if (!apiKey) {
+      throw new Error(
+        'GEMINI_API_KEY is required to initialize GeminiAiProvider'
+      )
     }
 
-    if (
-      normalized.includes('ainda nao paguei') ||
-      normalized.includes('desmarcar pagamento') ||
-      normalized.includes('desfazer pagamento') ||
-      normalized.includes('voltar para pendente')
-    ) {
-      const nameExpense = cleanNameExpense(normalized, [
-        'ainda nao paguei',
-        'desmarcar pagamento',
-        'desfazer pagamento',
-        'voltar para pendente',
-      ])
+    this.client = new GoogleGenAI({ apiKey })
+  }
 
-      return { intent: 'unpay_expense', nameExpense }
-    }
+  async parseMessage(
+    input: string,
+    currentState: string = 'idle'
+  ): Promise<ParsedAssistantCommand> {
+    const prompt = [
+      'Voce eh um extrator de intencao e entidades para um assistente financeiro pessoal.',
+      `Estado atual da conversa: ${currentState}.`,
+      'Retorne APENAS JSON valido no schema solicitado.',
+      'Nao invente valores. Quando nao houver informacao, retorne null ou unknown.',
+      'Mensagem do usuario:',
+      input,
+    ].join('\n')
 
-    if (
-      normalized.startsWith('paguei ') ||
-      normalized.startsWith('quitei ') ||
-      normalized.includes('marcar como pago')
-    ) {
-      return {
-        intent: 'pay_installment',
-        nameExpense: cleanNameExpense(normalized, [
-          'paguei',
-          'quitei',
-          'marcar como pago',
-          'a parcela de',
-        ]),
-      }
-    }
+    const response = await this.client.models.generateContent({
+      model,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseJsonSchema,
+      },
+    })
 
-    if (
-      (normalized.includes('contas') || normalized.includes('despesas')) &&
-      (normalized.includes('proximo mes') || normalized.includes('mes que vem'))
-    ) {
-      return { intent: 'accounts_payable_next_month' }
-    }
-
-    if (
-      normalized.includes('contas pendentes') ||
-      normalized.includes('falta pagar') ||
-      normalized.includes('pendente neste mes') ||
-      normalized.includes('em aberto neste mes')
-    ) {
-      return { intent: 'get_unpaid_expenses_of_current_month' }
-    }
-
-    if (
-      normalized.includes('parcelas faltam') ||
-      normalized.includes('quantas parcelas faltam')
-    ) {
-      return {
-        intent: 'get_remaining_installments',
-        nameExpense: cleanNameExpense(normalized, [
-          'parcelas faltam',
-          'quantas parcelas faltam',
-          'da',
-          'do',
-          'de',
-        ]),
-      }
-    }
-
-    if (
-      normalized.includes('parceladas pendentes') ||
-      normalized.includes('todas parcelas') ||
-      normalized.includes('compras parceladas')
-    ) {
-      return { intent: 'get_all_remaining_installments' }
-    }
-
-    if (normalized.includes('despesas fixas')) {
-      return { intent: 'get_sum_expenses_fixed' }
-    }
-
-    if (normalized.includes('mes passado') && normalized.includes('variavel')) {
-      return { intent: 'get_sum_expenses_of_last_month_variables' }
-    }
-
-    if (normalized.includes('mes atual') && normalized.includes('variavel')) {
-      return { intent: 'get_sum_expenses_of_month_variables' }
-    }
-
-    if (normalized.includes('receita') || normalized.includes('ganhei')) {
-      return {
-        intent: 'create_new_recipe',
-        description,
-        amount,
-      }
-    }
-
-    if (normalized.includes('parcelad')) {
-      return {
-        intent: 'create_expense_installment',
-        description,
-        amount,
-        numberOfInstallments: installments,
-        category: inferCategory(input),
-        firstDueDate: date,
-      }
-    }
-
-    if (normalized.includes('despesa') || normalized.includes('gastei')) {
-      return {
-        intent: 'create_expense',
-        description,
-        amount,
-        category: inferCategory(input),
-        isFixed:
-          normalized.includes('fixa') || normalized.includes('recorrente'),
-      }
-    }
-
-    if (normalized.includes('saldo') || normalized.includes('resumo')) {
-      return { intent: 'get_sum_expenses' }
-    }
-
-    return { intent: 'unknown' }
+    const payload = safeJsonParse(response.text)
+    return asParsedCommand(payload)
   }
 }

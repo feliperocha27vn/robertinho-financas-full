@@ -1,6 +1,7 @@
 import type { TransactionType } from '../../domain/finance'
 
 export type AssistantIntent =
+  | 'greeting'
   | 'create_expense'
   | 'create_expense_installment'
   | 'create_new_recipe'
@@ -29,5 +30,8 @@ export interface ParsedAssistantCommand {
 }
 
 export interface AiProvider {
-  parseMessage(input: string): Promise<ParsedAssistantCommand>
+  parseMessage(
+    input: string,
+    currentState?: string
+  ): Promise<ParsedAssistantCommand>
 }

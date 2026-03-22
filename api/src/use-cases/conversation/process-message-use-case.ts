@@ -1,5 +1,8 @@
 import { FiniteStateMachine } from '../../conversation/fsm'
-import type { AiProvider } from '../../providers/ai/ai-provider'
+import type {
+  AiProvider,
+  ParsedAssistantCommand,
+} from '../../providers/ai/ai-provider'
 import type { SessionRepository } from '../../repositories/contracts/session-repository'
 import type { AccountsPayableNextMonthUseCase } from '../expenses/accounts-payable-next-month-use-case'
 import type { CreateExpenseInstallmentUseCase } from '../expenses/create-expense-installment-use-case'
@@ -57,19 +60,30 @@ export class ProcessMessageUseCase {
       {
         from: 'idle',
         to: 'collecting_installment_due_date',
-        when: text =>
-          text.toLowerCase().includes('parcelad') ||
-          text.toLowerCase().includes('parcelado'),
+        when: parsed => {
+          const command = parsed as ParsedAssistantCommand
+          return (
+            command.intent === 'create_expense_installment' &&
+            !command.firstDueDate &&
+            !!command.description &&
+            command.amount !== undefined &&
+            !!command.category &&
+            !!command.numberOfInstallments
+          )
+        },
       },
       {
         from: 'collecting_installment_due_date',
         to: 'idle',
-        when: () => true,
+        when: parsed => {
+          const command = parsed as ParsedAssistantCommand
+          return !!command.firstDueDate
+        },
       },
     ])
 
-    const parsed = await this.aiProvider.parseMessage(input.text)
-    const nextState = fsm.transition(input.text)
+    const parsed = await this.aiProvider.parseMessage(input.text, state)
+    const nextState = fsm.transition(parsed)
 
     if (
       nextState === 'collecting_installment_due_date' &&
@@ -128,6 +142,12 @@ export class ProcessMessageUseCase {
     let responseMessage = 'Nao consegui entender. Pode reformular?'
 
     switch (parsed.intent) {
+      case 'greeting': {
+        responseMessage =
+          'Fala! Eu sou o Robertinho. Posso registrar despesa/receita, marcar pagamento e te mostrar resumos. Exemplo: "gastei R$ 45 com uber".'
+        break
+      }
+
       case 'create_expense': {
         if (
           !parsed.description ||

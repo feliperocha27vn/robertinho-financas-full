@@ -1,7 +1,7 @@
 export interface StateTransition {
   from: string
   to: string
-  when: (input: string) => boolean
+  when: (input: unknown) => boolean
 }
 
 export class FiniteStateMachine {
@@ -14,7 +14,7 @@ export class FiniteStateMachine {
     return this.currentState
   }
 
-  transition(input: string): string {
+  transition(input: unknown): string {
     const transition = this.transitions.find(
       item => item.from === this.currentState && item.when(input)
     )
