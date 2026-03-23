@@ -1,7 +1,13 @@
+export interface SessionHistoryEntry {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 export interface SessionState {
   id: string
   currentState: string
   context: Record<string, unknown>
+  history: SessionHistoryEntry[]
   updatedAt: Date
 }
 

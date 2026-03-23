@@ -13,8 +13,7 @@ const requestOptions = {
 
 export const telegramBot = new TelegramBot(env.TELEGRAM_BOT_TOKEN, {
   request: requestOptions,
-  polling: {
-    interval: 2000,
-    params: { timeout: 20, allowed_updates: ['message'] },
+  webHook: {
+    autoOpen: false,
   },
 })

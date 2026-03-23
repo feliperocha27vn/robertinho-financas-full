@@ -1,12 +1,11 @@
-import { addMonths } from 'date-fns'
-import { FiniteStateMachine } from '../../conversation/fsm'
-import { MessageFormatter } from '../../presenters/message-formatter'
-import type {
-  AiProvider,
-  ParsedAssistantCommand,
-} from '../../providers/ai/ai-provider'
+import type { TransactionType } from '../../domain/finance'
+import { handleCreateCalendarEvent } from '../../functions/calendar/handlers/handle-create-calendar-event'
+import { handleListCalendarEvents } from '../../functions/calendar/handlers/handle-list-calendar-events'
+import type { AiProvider, ToolCall } from '../../providers/ai/ai-provider'
+import type { CalendarProvider } from '../../providers/calendar/calendar-provider'
 import type { SessionRepository } from '../../repositories/contracts/session-repository'
 import type { AccountsPayableNextMonthUseCase } from '../expenses/accounts-payable-next-month-use-case'
+import type { AccountsToPayByDayFifteenUseCase } from '../expenses/accounts-to-pay-by-day-fifteen-use-case'
 import type { CreateExpenseInstallmentUseCase } from '../expenses/create-expense-installment-use-case'
 import type { CreateExpenseUseCase } from '../expenses/create-expense-use-case'
 import type { GetAllRemainingInstallmentsUseCase } from '../expenses/get-all-remaining-installments-use-case'
@@ -22,516 +21,202 @@ import type { PayInstallmentUseCase } from '../expenses/pay-installment-use-case
 import type { UnpayExpenseUseCase } from '../expenses/unpay-expense-use-case'
 import type { UpdateExpenseAmountUseCase } from '../expenses/update-expense-amount-use-case'
 import type { CreateRecipeUseCase } from '../recipes/create-recipe-use-case'
+import type { GetHomeDataUseCase } from '../summary/get-home-data-use-case'
 
 interface Input {
   sessionId: string
   text: string
 }
 
-interface PendingInstallmentContext {
-  description: string
-  amount: number
-  category: 'TRANSPORT' | 'OTHERS' | 'STUDIES' | 'RESIDENCE' | 'CREDIT'
-  numberOfInstallments: number
-}
-
-interface PendingUpdateExpenseContext {
-  expenseName: string
-}
-
 export class ProcessMessageUseCase {
   constructor(
     private readonly sessionRepository: SessionRepository,
     private readonly aiProvider: AiProvider,
+    private readonly calendarProvider: CalendarProvider,
     private readonly createExpenseUseCase: CreateExpenseUseCase,
     private readonly createExpenseInstallmentUseCase: CreateExpenseInstallmentUseCase,
     private readonly createRecipeUseCase: CreateRecipeUseCase,
     private readonly getSumExpensesUseCase: GetSumExpensesUseCase,
     private readonly getSumExpensesFixedUseCase: GetSumExpensesFixedUseCase,
-    private readonly getSumExpensesOfMonthVariablesUseCase: GetSumExpensesOfMonthVariablesUseCase,
-    private readonly getSumExpensesOfLastMonthVariablesUseCase: GetSumExpensesOfLastMonthVariablesUseCase,
-    private readonly accountsPayableNextMonthUseCase: AccountsPayableNextMonthUseCase,
-    private readonly getUnpaidExpensesOfCurrentMonthUseCase: GetUnpaidExpensesOfCurrentMonthUseCase,
     private readonly getRemainingInstallmentsUseCase: GetRemainingInstallmentsUseCase,
     private readonly getAllRemainingInstallmentsUseCase: GetAllRemainingInstallmentsUseCase,
+    private readonly getSumExpensesOfLastMonthVariablesUseCase: GetSumExpensesOfLastMonthVariablesUseCase,
+    private readonly getUnpaidExpensesOfCurrentMonthUseCase: GetUnpaidExpensesOfCurrentMonthUseCase,
     private readonly payInstallmentUseCase: PayInstallmentUseCase,
-    private readonly payExpensesByNamesUseCase: PayExpensesByNamesUseCase,
     private readonly payAllUnpaidCurrentMonthUseCase: PayAllUnpaidCurrentMonthUseCase,
     private readonly unpayExpenseUseCase: UnpayExpenseUseCase,
+    private readonly accountsToPayByDayFifteenUseCase: AccountsToPayByDayFifteenUseCase,
+    private readonly getHomeDataUseCase: GetHomeDataUseCase,
+    private readonly getSumExpensesOfMonthVariablesUseCase: GetSumExpensesOfMonthVariablesUseCase,
+    private readonly accountsPayableNextMonthUseCase: AccountsPayableNextMonthUseCase,
+    private readonly payExpensesByNamesUseCase: PayExpensesByNamesUseCase,
     private readonly updateExpenseAmountUseCase: UpdateExpenseAmountUseCase
   ) {}
 
   async execute(input: Input): Promise<{ message: string }> {
     const existing = await this.sessionRepository.findById(input.sessionId)
-    const state = existing?.currentState ?? 'idle'
-    const context = existing?.context ?? {}
+    const history = existing?.history ?? []
 
-    const fsm = new FiniteStateMachine(state, [
-      {
-        from: 'idle',
-        to: 'collecting_installment_due_date',
-        when: parsed => {
-          const command = parsed as ParsedAssistantCommand
-          return (
-            command.intent === 'create_expense_installment' &&
-            !command.firstDueDate &&
-            !!command.description &&
-            command.amount !== undefined &&
-            !!command.category &&
-            !!command.numberOfInstallments
-          )
-        },
-      },
-      {
-        from: 'collecting_installment_due_date',
-        to: 'idle',
-        when: parsed => {
-          const command = parsed as ParsedAssistantCommand
-          return !!command.firstDueDate
-        },
-      },
-      {
-        from: 'idle',
-        to: 'awaiting_expense_value',
-        when: parsed => {
-          const command = parsed as ParsedAssistantCommand
-          const intent =
-            command.intent === 'update_expense_amount'
-              ? 'update_expense'
-              : command.intent
+    const result = await this.aiProvider.generateReply(input.text, {
+      currentState: existing?.currentState ?? 'idle',
+      pendingData: existing?.context ?? {},
+      history,
+      executeTool: call => this.executeToolCall(call),
+    })
 
-          return (
-            intent === 'update_expense' &&
-            !!(command.expenseName ?? command.nameExpense) &&
-            command.newValue === undefined &&
-            command.amount === undefined
-          )
-        },
-      },
-      {
-        from: 'awaiting_expense_value',
-        to: 'idle',
-        when: parsed => {
-          const command = parsed as ParsedAssistantCommand
-          return command.newValue !== undefined || command.amount !== undefined
-        },
-      },
-    ])
+    await this.sessionRepository.save({
+      id: input.sessionId,
+      currentState: 'idle',
+      context: {},
+      history: result.history,
+      updatedAt: new Date(),
+    })
 
-    const parsed = await this.aiProvider.parseMessage(input.text, state)
-    const nextState = fsm.transition(parsed)
+    return { message: result.message }
+  }
 
-    if (
-      nextState === 'collecting_installment_due_date' &&
-      parsed.intent === 'create_expense_installment' &&
-      !parsed.firstDueDate &&
-      parsed.description &&
-      parsed.amount !== undefined &&
-      parsed.category &&
-      parsed.numberOfInstallments
-    ) {
-      await this.sessionRepository.save({
-        id: input.sessionId,
-        currentState: nextState,
-        context: {
-          ...context,
-          pendingInstallment: {
-            description: parsed.description,
-            amount: parsed.amount,
-            category: parsed.category,
-            numberOfInstallments: parsed.numberOfInstallments,
-          } satisfies PendingInstallmentContext,
-        },
-        updatedAt: new Date(),
-      })
-
-      return {
-        message:
-          'Me fala a data da primeira parcela (dd/mm/aaaa) para eu registrar certinho.',
-      }
-    }
-
-    if (state === 'collecting_installment_due_date') {
-      const pending = context.pendingInstallment as
-        | PendingInstallmentContext
-        | undefined
-      if (pending && parsed.firstDueDate) {
-        await this.createExpenseInstallmentUseCase.execute({
-          description: pending.description,
-          amount: pending.amount,
-          category: pending.category,
-          numberOfInstallments: pending.numberOfInstallments,
-          firstDueDate: parsed.firstDueDate,
-        })
-
-        await this.sessionRepository.save({
-          id: input.sessionId,
-          currentState: 'idle',
-          context: {},
-          updatedAt: new Date(),
-        })
-
-        return { message: 'Despesa parcelada registrada com sucesso.' }
-      }
-    }
-
-    if (state === 'awaiting_expense_value') {
-      const pending = context.pendingUpdateExpense as
-        | PendingUpdateExpenseContext
-        | undefined
-      const parsedValue = parsed.newValue ?? parsed.amount
-
-      if (pending && parsedValue !== undefined) {
-        const result = await this.updateExpenseAmountUseCase.execute({
-          nameExpense: pending.expenseName,
-          amount: parsedValue,
-        })
-
-        await this.sessionRepository.save({
-          id: input.sessionId,
-          currentState: 'idle',
-          context: {},
-          updatedAt: new Date(),
-        })
-
-        if (result.status === 'not_found') {
-          return {
-            message:
-              'Nao encontrei essa despesa para atualizar. Me fala um nome mais especifico.',
-          }
-        }
-
-        if (result.status === 'ambiguous') {
-          return {
-            message: MessageFormatter.updateExpenseAmountAmbiguity({
-              options: result.options,
-            }),
-          }
-        }
-
-        return {
-          message: MessageFormatter.updateExpenseAmountSuccess({
-            description: result.description,
-            oldAmount: result.oldAmount,
-            newAmount: result.newAmount,
-          }),
-        }
-      }
-    }
-
-    if (nextState === 'awaiting_expense_value') {
-      const expenseName = parsed.expenseName ?? parsed.nameExpense
-
-      await this.sessionRepository.save({
-        id: input.sessionId,
-        currentState: 'awaiting_expense_value',
-        context: {
-          ...context,
-          pendingUpdateExpense: {
-            expenseName,
-          } satisfies PendingUpdateExpenseContext,
-        },
-        updatedAt: new Date(),
-      })
-
-      return {
-        message: `Me fala o novo valor para a despesa <b>${expenseName}</b>.`,
-      }
-    }
-
-    let responseMessage = 'Nao consegui entender. Pode reformular?'
-
-    switch (parsed.intent) {
-      case 'greeting': {
-        responseMessage =
-          'Fala! Eu sou o Robertinho. Posso registrar despesa/receita, marcar pagamento e te mostrar resumos. Exemplo: "gastei R$ 45 com uber".'
-        break
-      }
-
+  private async executeToolCall(call: ToolCall): Promise<unknown> {
+    switch (call.name) {
       case 'create_expense': {
-        if (
-          !parsed.description ||
-          parsed.amount === undefined ||
-          !parsed.category
-        ) {
-          responseMessage =
-            'Preciso de descricao, valor e categoria para registrar a despesa.'
-          break
-        }
         const result = await this.createExpenseUseCase.execute({
-          description: parsed.description,
-          amount: parsed.amount,
-          category: parsed.category,
-          isFixed: parsed.isFixed ?? false,
+          description: String(call.args.description ?? ''),
+          amount: Number(call.args.amount ?? 0),
+          category: String(call.args.category ?? 'OTHERS') as TransactionType,
+          isFixed: Boolean(call.args.isFixed ?? false),
         })
-        responseMessage = result.message
-        break
+
+        return { ok: true, result }
       }
 
       case 'create_expense_installment': {
-        if (
-          !parsed.description ||
-          parsed.amount === undefined ||
-          !parsed.category ||
-          !parsed.numberOfInstallments ||
-          !parsed.firstDueDate
-        ) {
-          responseMessage =
-            'Preciso de descricao, valor, categoria, quantidade de parcelas e primeira data de vencimento.'
-          break
-        }
-
         await this.createExpenseInstallmentUseCase.execute({
-          description: parsed.description,
-          amount: parsed.amount,
-          category: parsed.category,
-          numberOfInstallments: parsed.numberOfInstallments,
-          firstDueDate: parsed.firstDueDate,
+          description: String(call.args.description ?? ''),
+          amount: Number(call.args.amount ?? 0),
+          category: String(call.args.category ?? 'OTHERS') as TransactionType,
+          numberOfInstallments: Number(call.args.numberOfInstallments ?? 1),
+          firstDueDate: new Date(String(call.args.firstDueDateIso ?? '')),
         })
 
-        responseMessage = 'Despesa parcelada registrada com sucesso.'
-        break
-      }
-
-      case 'create_new_recipe': {
-        if (!parsed.description || parsed.amount === undefined) {
-          responseMessage =
-            'Preciso da descricao e do valor para registrar a receita.'
-          break
+        return {
+          ok: true,
+          result: { message: 'Despesa parcelada registrada com sucesso.' },
         }
-
-        await this.createRecipeUseCase.execute({
-          description: parsed.description,
-          amount: parsed.amount,
-        })
-
-        responseMessage = 'Receita registrada com sucesso.'
-        break
       }
 
-      case 'get_sum_expenses': {
-        const result = await this.getSumExpensesUseCase.execute()
-        const totalAll = Number(result.totalExpenses)
-        const fixedResult = await this.getSumExpensesFixedUseCase.execute()
-        const fixedTotal = Number(fixedResult.totalFixedExpenses)
-        const variableTotal = Math.max(0, totalAll - fixedTotal)
-
-        responseMessage = MessageFormatter.monthlySummary({
-          referenceDate: new Date(),
-          fixedExpenses: fixedTotal,
-          variableExpenses: variableTotal,
-          overallTotal: totalAll,
+      case 'update_expense_amount': {
+        const result = await this.updateExpenseAmountUseCase.execute({
+          nameExpense: String(call.args.nameExpense ?? ''),
+          amount: Number(call.args.amount ?? 0),
         })
-        break
+        return { ok: true, result }
       }
 
-      case 'get_sum_expenses_fixed': {
-        const result = await this.getSumExpensesFixedUseCase.execute()
-        responseMessage = MessageFormatter.totalWithItems({
-          title: 'Despesas Fixas',
-          emoji: '🔴',
-          totalLabel: 'Total de despesas fixas',
-          totalAmount: Number(result.totalFixedExpenses),
-          items: result.items.map(item => ({
-            description: item.description,
-            amount: item.amount,
-          })),
-        })
-        break
+      case 'pay_expenses_by_names': {
+        const rawItems = Array.isArray(call.args.items) ? call.args.items : []
+        const items = rawItems
+          .map(item => String(item))
+          .filter(item => item.length > 0)
+
+        const result = await this.payExpensesByNamesUseCase.execute({ items })
+        return { ok: true, result }
+      }
+
+      case 'accounts_payable_next_month': {
+        const result = await this.accountsPayableNextMonthUseCase.execute()
+        return { ok: true, result }
       }
 
       case 'get_sum_expenses_of_month_variables': {
         const result =
           await this.getSumExpensesOfMonthVariablesUseCase.execute()
+        return { ok: true, result }
+      }
 
-        const variableItems = result.items.map(item => ({
-          description: item.description,
-          amount: item.amount,
-        }))
+      case 'get_sum_expenses': {
+        const result = await this.getSumExpensesUseCase.execute()
+        return { ok: true, result }
+      }
 
-        responseMessage = MessageFormatter.totalWithItems({
-          title: 'Despesas Variaveis do Mes',
-          emoji: '🟡',
-          totalLabel: 'Total variavel do mes',
-          totalAmount: result.totalExpensesOfMonth,
-          items: variableItems,
-        })
-        break
+      case 'get_sum_expenses_fixed': {
+        const result = await this.getSumExpensesFixedUseCase.execute()
+        return { ok: true, result }
       }
 
       case 'get_sum_expenses_of_last_month_variables': {
         const result =
           await this.getSumExpensesOfLastMonthVariablesUseCase.execute()
-        responseMessage = MessageFormatter.totalWithItems({
-          title: 'Despesas Variaveis do Mes Passado',
-          emoji: '📆',
-          totalLabel: 'Total variavel do mes passado',
-          totalAmount: result.totalExpensesOfLastMonth,
-          items: result.items.map(item => ({
-            description: item.description,
-            amount: item.amount,
-          })),
-        })
-        break
-      }
-
-      case 'accounts_payable_next_month': {
-        const result = await this.accountsPayableNextMonthUseCase.execute()
-        responseMessage = MessageFormatter.accountsPayableNextMonth({
-          referenceDate: addMonths(new Date(), 1),
-          items: result.accountsPayableNextMonth,
-          totalAmount: result.totalAmountForPayableNextMonth,
-        })
-        break
+        return { ok: true, result }
       }
 
       case 'get_unpaid_expenses_of_current_month': {
         const result =
           await this.getUnpaidExpensesOfCurrentMonthUseCase.execute()
-        responseMessage = MessageFormatter.totalWithItems({
-          title: 'Pendencias do Mes',
-          emoji: '🧾',
-          totalLabel: 'Total pendente neste mes',
-          totalAmount: result.totalUnpaidAmount,
-          items: result.unpaidExpenses.map(item => ({
-            description: item.description,
-            amount: item.amount,
-          })),
-        })
-        break
+        return { ok: true, result }
       }
 
       case 'get_remaining_installments': {
-        if (!parsed.nameExpense) {
-          responseMessage =
-            'Me fala o nome da despesa para calcular parcelas restantes.'
-          break
-        }
         const result = await this.getRemainingInstallmentsUseCase.execute({
-          nameExpense: parsed.nameExpense,
+          nameExpense: String(call.args.nameExpense ?? ''),
         })
-        responseMessage = result.found
-          ? `Restam ${result.remainingInstallments} parcelas.`
-          : 'Nao encontrei essa despesa.'
-        break
+        return { ok: true, result }
       }
 
       case 'get_all_remaining_installments': {
         const result = await this.getAllRemainingInstallmentsUseCase.execute()
-        responseMessage = `Total restante em parcelados: R$ ${result.totalOverallRemaining.toFixed(2)}`
-        break
+        return { ok: true, result }
       }
 
       case 'pay_installment': {
-        if (!parsed.nameExpense) {
-          responseMessage =
-            'Me fala o nome da despesa para eu marcar a parcela como paga.'
-          break
-        }
         const result = await this.payInstallmentUseCase.execute({
-          nameExpense: parsed.nameExpense,
+          nameExpense: String(call.args.nameExpense ?? ''),
         })
-        responseMessage = result.found
-          ? 'Parcela marcada como paga.'
-          : 'Nao encontrei essa despesa.'
-        break
-      }
-
-      case 'pay_expenses': {
-        if (!parsed.items || parsed.items.length === 0) {
-          responseMessage =
-            'Me fala quais contas voce pagou. Exemplo: "paguei luz e agua".'
-          break
-        }
-
-        const result = await this.payExpensesByNamesUseCase.execute({
-          items: parsed.items,
-        })
-
-        if (result.status === 'ambiguous') {
-          responseMessage = MessageFormatter.payExpensesAmbiguity({
-            term: result.term,
-            options: result.options,
-          })
-          break
-        }
-
-        responseMessage = MessageFormatter.payExpensesSuccess({
-          paidDescriptions: result.paidDescriptions,
-          notFound: result.notFound,
-        })
-        break
+        return { ok: true, result }
       }
 
       case 'pay_all_unpaid_current_month': {
         const result = await this.payAllUnpaidCurrentMonthUseCase.execute()
-        responseMessage = `Concluido. ${result.paidCount} item(ns) marcados como pagos.`
-        break
+        return { ok: true, result }
       }
 
       case 'unpay_expense': {
-        if (!parsed.nameExpense) {
-          responseMessage = 'Me fala qual despesa deve voltar para pendente.'
-          break
-        }
         const result = await this.unpayExpenseUseCase.execute({
-          nameExpense: parsed.nameExpense,
+          nameExpense: String(call.args.nameExpense ?? ''),
         })
-        responseMessage = result.found
-          ? 'Pagamento desmarcado com sucesso.'
-          : 'Nao encontrei essa despesa.'
-        break
+        return { ok: true, result }
       }
 
-      case 'update_expense':
-      case 'update_expense_amount': {
-        const expenseName = parsed.expenseName ?? parsed.nameExpense
-        const newValue = parsed.newValue ?? parsed.amount
+      case 'accounts_to_pay_by_day_fifteen': {
+        const result = await this.accountsToPayByDayFifteenUseCase.execute()
+        return { ok: true, result }
+      }
 
-        if (!expenseName || newValue === undefined) {
-          responseMessage =
-            'Me diga a despesa e o novo valor. Exemplo: "mude energia para 110".'
-          break
-        }
-
-        const result = await this.updateExpenseAmountUseCase.execute({
-          nameExpense: expenseName,
-          amount: newValue,
+      case 'create_recipe': {
+        await this.createRecipeUseCase.execute({
+          description: String(call.args.description ?? ''),
+          amount: Number(call.args.amount ?? 0),
         })
 
-        if (result.status === 'not_found') {
-          responseMessage =
-            'Nao encontrei essa despesa para atualizar. Me fala um nome mais especifico.'
-          break
+        return {
+          ok: true,
+          result: { message: 'Receita registrada com sucesso.' },
         }
+      }
 
-        if (result.status === 'ambiguous') {
-          responseMessage = MessageFormatter.updateExpenseAmountAmbiguity({
-            options: result.options,
-          })
-          break
-        }
+      case 'get_home_data': {
+        const result = await this.getHomeDataUseCase.execute()
+        return { ok: true, result }
+      }
 
-        responseMessage = MessageFormatter.updateExpenseAmountSuccess({
-          description: result.description,
-          oldAmount: result.oldAmount,
-          newAmount: result.newAmount,
-        })
+      case 'create_calendar_event': {
+        return handleCreateCalendarEvent(this.calendarProvider, call.args)
+      }
 
-        break
+      case 'list_calendar_events': {
+        return handleListCalendarEvents(this.calendarProvider, call.args)
       }
 
       default:
-        responseMessage = 'Nao consegui entender. Pode reformular?'
+        return { ok: false, error: `Tool ${call.name} nao implementada.` }
     }
-
-    await this.sessionRepository.save({
-      id: input.sessionId,
-      currentState: nextState,
-      context,
-      updatedAt: new Date(),
-    })
-
-    return { message: responseMessage }
   }
 }

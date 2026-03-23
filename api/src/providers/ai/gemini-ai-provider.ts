@@ -1,178 +1,109 @@
-import { GoogleGenAI, Type } from '@google/genai'
-import type { AiProvider, ParsedAssistantCommand } from './ai-provider'
+import { GoogleGenAI } from '@google/genai'
+import type {
+  AiConversationContext,
+  AiConversationResult,
+  AiProvider,
+  ToolCall,
+} from './ai-provider'
+import { financeFunctionDeclarations } from './gemini/declarations/finance-tools'
 
 const model = 'gemini-2.5-flash'
 
-const responseJsonSchema = {
-  type: Type.OBJECT,
-  properties: {
-    intent: {
-      type: Type.STRING,
-      enum: [
-        'greeting',
-        'pay_expenses',
-        'update_expense',
-        'update_expense_amount',
-        'create_expense',
-        'create_expense_installment',
-        'create_new_recipe',
-        'get_sum_expenses',
-        'get_sum_expenses_fixed',
-        'get_sum_expenses_of_month_variables',
-        'get_sum_expenses_of_last_month_variables',
-        'accounts_payable_next_month',
-        'get_unpaid_expenses_of_current_month',
-        'get_remaining_installments',
-        'get_all_remaining_installments',
-        'pay_installment',
-        'pay_all_unpaid_current_month',
-        'unpay_expense',
-        'unknown',
-      ],
-    },
-    description: { type: Type.STRING, nullable: true },
-    amount: { type: Type.NUMBER, nullable: true },
-    category: {
-      type: Type.STRING,
-      enum: ['TRANSPORT', 'OTHERS', 'STUDIES', 'RESIDENCE', 'CREDIT'],
-      nullable: true,
-    },
-    isFixed: { type: Type.BOOLEAN, nullable: true },
-    numberOfInstallments: { type: Type.INTEGER, nullable: true },
-    nameExpense: { type: Type.STRING, nullable: true },
-    expenseName: { type: Type.STRING, nullable: true },
-    items: {
-      type: Type.ARRAY,
-      items: { type: Type.STRING },
-      nullable: true,
-    },
-    firstDueDate: {
-      type: Type.STRING,
-      description: 'Data ISO 8601. Exemplo: 2026-04-15T00:00:00.000Z',
-      nullable: true,
-    },
-    newValue: { type: Type.NUMBER, nullable: true },
-  },
-  required: ['intent'],
-} as const
+type GenPart =
+  | { text: string }
+  | { functionCall: { name: string; args?: Record<string, unknown> } }
+  | {
+      functionResponse: {
+        name: string
+        response: { result: unknown }
+      }
+    }
+
+type GenContent = {
+  role: 'user' | 'model'
+  parts: GenPart[]
+}
 
 interface GeminiClient {
   models: {
-    generateContent(args: {
-      model: string
-      contents: string
-      config: {
-        responseMimeType: 'application/json'
-        responseJsonSchema: typeof responseJsonSchema
-      }
-    }): Promise<{ text?: string }>
+    generateContent(args: any): Promise<{
+      text?: string
+      functionCalls?: Array<{ name?: string; args?: Record<string, unknown> }>
+    }>
   }
 }
 
-function safeJsonParse(text?: string): Record<string, unknown> {
-  if (!text) {
-    return { intent: 'unknown' }
-  }
+function toGeminiContents(
+  history: AiConversationContext['history'],
+  userMessage: string
+): GenContent[] {
+  const contents: GenContent[] = history.map(item => ({
+    role: item.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: item.content }],
+  }))
 
-  try {
-    return JSON.parse(text)
-  } catch {
-    return { intent: 'unknown' }
-  }
+  contents.push({
+    role: 'user',
+    parts: [{ text: userMessage }],
+  })
+
+  return contents
 }
 
-function asParsedCommand(
-  payload: Record<string, unknown>
-): ParsedAssistantCommand {
-  const allowedIntents = new Set<ParsedAssistantCommand['intent']>([
-    'greeting',
-    'pay_expenses',
-    'update_expense',
-    'update_expense_amount',
-    'create_expense',
-    'create_expense_installment',
-    'create_new_recipe',
-    'get_sum_expenses',
-    'get_sum_expenses_fixed',
-    'get_sum_expenses_of_month_variables',
-    'get_sum_expenses_of_last_month_variables',
-    'accounts_payable_next_month',
-    'get_unpaid_expenses_of_current_month',
-    'get_remaining_installments',
-    'get_all_remaining_installments',
-    'pay_installment',
-    'pay_all_unpaid_current_month',
-    'unpay_expense',
-    'unknown',
-  ])
+function nowIsoBrazilHint(): string {
+  return new Date().toISOString()
+}
 
-  const intent =
-    typeof payload.intent === 'string' &&
-    allowedIntents.has(payload.intent as ParsedAssistantCommand['intent'])
-      ? (payload.intent as ParsedAssistantCommand['intent'])
-      : 'unknown'
-
-  const firstDueDate =
-    typeof payload.firstDueDate === 'string' && payload.firstDueDate.length > 0
-      ? new Date(payload.firstDueDate)
-      : undefined
-
-  const amount =
-    typeof payload.amount === 'number'
-      ? payload.amount
-      : typeof payload.amount === 'string'
-        ? Number(payload.amount.replace(',', '.'))
-        : undefined
-
-  const newValue =
-    typeof payload.newValue === 'number'
-      ? payload.newValue
-      : typeof payload.newValue === 'string'
-        ? Number(payload.newValue.replace(',', '.'))
-        : undefined
-
-  const normalizedUpdateIntent =
-    intent === 'update_expense_amount' ? 'update_expense' : intent
-
-  const nameExpense =
-    typeof payload.expenseName === 'string'
-      ? payload.expenseName
-      : typeof payload.nameExpense === 'string'
-        ? payload.nameExpense
-        : normalizedUpdateIntent === 'update_expense' &&
-            typeof payload.description === 'string'
-          ? payload.description
-          : undefined
-
+function buildSystemContextPart(context: AiConversationContext): GenPart {
   return {
-    intent: normalizedUpdateIntent,
-    description:
-      typeof payload.description === 'string' ? payload.description : undefined,
-    amount: amount !== undefined && !Number.isNaN(amount) ? amount : undefined,
-    category:
-      payload.category === 'TRANSPORT' ||
-      payload.category === 'OTHERS' ||
-      payload.category === 'STUDIES' ||
-      payload.category === 'RESIDENCE' ||
-      payload.category === 'CREDIT'
-        ? payload.category
-        : undefined,
-    isFixed: typeof payload.isFixed === 'boolean' ? payload.isFixed : undefined,
-    numberOfInstallments:
-      typeof payload.numberOfInstallments === 'number'
-        ? payload.numberOfInstallments
-        : undefined,
-    nameExpense,
-    expenseName: nameExpense,
-    items: Array.isArray(payload.items)
-      ? payload.items.filter((item): item is string => typeof item === 'string')
-      : undefined,
-    newValue:
-      newValue !== undefined && !Number.isNaN(newValue) ? newValue : undefined,
-    firstDueDate:
-      firstDueDate && !Number.isNaN(firstDueDate.getTime())
-        ? firstDueDate
-        : undefined,
+    text: [
+      'Voce e o Robertinho, assistente financeiro com function calling.',
+      'Use as ferramentas para executar operacoes no banco quando necessario.',
+      'A data atual do sistema e ' + nowIsoBrazilHint() + '.',
+      'Ao chamar funcoes com datas (parcelas e vencimentos), calcule data ISO absoluta correta no fuso horario do Brasil.',
+      `ESTADO_ATUAL_DA_SESSAO: ${context.currentState ?? 'idle'}`,
+      `DADOS_PENDENTES: ${JSON.stringify(context.pendingData ?? {})}`,
+      'Sempre considere o historico da conversa antes de decidir a proxima acao.',
+      'Se faltar informacao, faca pergunta objetiva ao usuario.',
+      'Se houver dados suficientes, chame a ferramenta adequada.',
+      'Voce e plenamente capaz de gerenciar parcelamentos.',
+      'Se o usuario perguntar "quais compras parceladas eu tenho?", use get_all_remaining_installments.',
+      'Se perguntar "quantas parcelas faltam da moto?", use get_remaining_installments passando nameExpense.',
+      'Para total geral de despesas use get_sum_expenses.',
+      'Para despesas fixas use get_sum_expenses_fixed.',
+      'Para variaveis do mes anterior use get_sum_expenses_of_last_month_variables.',
+      'Para contas em aberto no mes atual use get_unpaid_expenses_of_current_month.',
+      'Para dar baixa em uma parcela especifica use pay_installment com nameExpense.',
+      'Para quitar todas as contas em aberto do mes use pay_all_unpaid_current_month.',
+      'Para desfazer pagamento de uma despesa use unpay_expense com nameExpense.',
+      'Para contas ate o dia 15 use accounts_to_pay_by_day_fifteen.',
+      'Para registrar receita use create_recipe com descricao e valor.',
+      'Para painel consolidado da home use get_home_data.',
+      `Voce agora gerencia o Google Agenda do usuario. Use create_calendar_event para compromissos e list_calendar_events para checar a agenda. A data/hora exata de agora e: ${new Date().toISOString()} (UTC-3). Nunca tente adivinhar compromissos, sempre chame a funcao list primeiro.`,
+      '',
+      'DIRETRIZES DE FORMATACAO VISUAL (UI/UX) - OBRIGATORIAS',
+      'Nunca responda com texto seco ou lista crua ao relatar dados financeiros.',
+      'Sempre responda como interface premium com recibos e dashboards legiveis.',
+      'Use HTML do Telegram: <b>negrito</b> e <i>italico</i>.',
+      'Valores monetarios e rotulos devem estar sempre em <b>negrito</b>.',
+      'Use emojis contextuais obrigatoriamente em cada item (ex: ⚡ energia, 🚗 gasolina, 🛒 mercado, 💧 agua, 🏥 saude).',
+      'Use linhas separadoras com --- para estruturar dashboards.',
+      '',
+      'Template 1 - Recibo de acao (criar/pagar/atualizar):',
+      '✅ <i>Despesa Registrada!</i>',
+      '🏷️ <b>Item:</b> Cuidados Medicos',
+      '💰 <b>Valor:</b> R$ 348,00',
+      '📅 <b>Data/Vencimento:</b> 05/04/2026',
+      '',
+      'Template 2 - Dashboard de resumo/listagem:',
+      '📊 <i>Resumo de Abril/2026</i>',
+      '---',
+      '🛒 <b>Mercado:</b> R$ 250,00',
+      '💧 <b>Agua:</b> R$ 40,00',
+      '🏥 <b>Cuidados Medicos:</b> R$ 348,00',
+      '---',
+      '📉 <b>TOTAL A PAGAR:</b> R$ 2.216,33',
+    ].join('\n'),
   }
 }
 
@@ -196,46 +127,91 @@ export class GeminiAiProvider implements AiProvider {
     this.client = new GoogleGenAI({ apiKey })
   }
 
-  async parseMessage(
-    input: string,
-    currentState: string = 'idle'
-  ): Promise<ParsedAssistantCommand> {
-    const prompt = [
-      'Voce eh um extrator de intencao e entidades para um assistente financeiro pessoal.',
-      `Estado atual da conversa: ${currentState}.`,
-      'Retorne APENAS JSON valido no schema solicitado.',
-      'Nao invente valores. Quando nao houver informacao, retorne null ou unknown.',
-      'REGRAS DE DECISAO DE INTENCAO (PRIORIDADE ALTA):',
-      '- Se o usuario pedir para mudar/alterar/atualizar o valor de uma despesa existente, use update_expense.',
-      '- Nesses casos, NAO use create_expense.',
-      '- Em update_expense, preencha obrigatoriamente expenseName e newValue.',
-      'REGRA OBRIGATORIA: quando a intencao for pay_expenses, o campo items DEVE conter os nomes das contas mencionadas.',
-      'Sempre que o usuario demonstrar pagar, quitar, dar baixa ou acertar uma conta, extraia obrigatoriamente os itens.',
-      'NUNCA retorne pay_expenses com items vazio.',
-      'Se o usuario falar que pagou algo, mas sem dizer qual conta, use intent unknown (nao use pay_expenses).',
-      'Exemplo: "mude o valor da despesa de energia para 110 reais" -> {"intent":"update_expense","expenseName":"energia","newValue":110}',
-      'Exemplo: "altere energia para 110" -> {"intent":"update_expense","expenseName":"energia","newValue":110}',
-      'Exemplo: "atualize a conta de internet para 99,90" -> {"intent":"update_expense","expenseName":"internet","newValue":99.90}',
-      'Exemplo: "mude energia" -> {"intent":"update_expense","expenseName":"energia"}',
-      'Exemplo: "acabei de pagar a renegociacao e o cartao" -> {"intent":"pay_expenses","items":["renegociacao","cartao"]}',
-      'Exemplo: "eu paguei a energia" -> {"intent":"pay_expenses","items":["energia"]}',
-      'Exemplo: "quitei luz, agua e internet" -> {"intent":"pay_expenses","items":["luz","agua","internet"]}',
-      'Exemplo: "dei baixa na fatura do nubank" -> {"intent":"pay_expenses","items":["fatura do nubank"]}',
-      'Exemplo negativo: "ja paguei" -> {"intent":"unknown"}',
-      'Mensagem do usuario:',
-      input,
-    ].join('\n')
+  async generateReply(
+    userMessage: string,
+    context: AiConversationContext
+  ): Promise<AiConversationResult> {
+    const contents = toGeminiContents(context.history, userMessage)
+    contents.unshift({ role: 'user', parts: [buildSystemContextPart(context)] })
 
-    const response = await this.client.models.generateContent({
+    let response = await this.client.models.generateContent({
       model,
-      contents: prompt,
+      contents,
       config: {
-        responseMimeType: 'application/json',
-        responseJsonSchema,
+        tools: [{ functionDeclarations: financeFunctionDeclarations }],
       },
     })
 
-    const payload = safeJsonParse(response.text)
-    return asParsedCommand(payload)
+    const nextHistory = [
+      ...context.history,
+      { role: 'user' as const, content: userMessage },
+    ]
+
+    let safetyCounter = 0
+    while (response.functionCalls && response.functionCalls.length > 0) {
+      safetyCounter += 1
+      if (safetyCounter > 5) {
+        break
+      }
+
+      const calls = response.functionCalls
+      for (const rawCall of calls) {
+        const call: ToolCall = {
+          name: rawCall.name ?? '',
+          args: rawCall.args ?? {},
+        }
+
+        const toolResult = await context.executeTool(call)
+
+        contents.push({
+          role: 'model',
+          parts: [
+            {
+              functionCall: {
+                name: call.name,
+                args: call.args,
+              },
+            },
+          ],
+        })
+
+        contents.push({
+          role: 'user',
+          parts: [
+            {
+              functionResponse: {
+                name: call.name,
+                response: { result: toolResult },
+              },
+            },
+          ],
+        })
+
+        nextHistory.push({
+          role: 'assistant',
+          content: `[functionCall] ${call.name}(${JSON.stringify(call.args)})`,
+        })
+        nextHistory.push({
+          role: 'assistant',
+          content: `[functionResponse] ${call.name}: ${JSON.stringify(toolResult)}`,
+        })
+      }
+
+      response = await this.client.models.generateContent({
+        model,
+        contents,
+        config: {
+          tools: [{ functionDeclarations: financeFunctionDeclarations }],
+        },
+      })
+    }
+
+    const message = response.text?.trim() || 'Nao consegui responder agora.'
+    nextHistory.push({ role: 'assistant', content: message })
+
+    return {
+      message,
+      history: nextHistory.slice(-20),
+    }
   }
 }

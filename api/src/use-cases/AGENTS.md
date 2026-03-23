@@ -18,3 +18,8 @@
 - Para comandos de atualizacao (ex: `UPDATE_EXPENSE`), o use case deve receber entidades completas quando possivel (`expenseName` + `newValue`).
 - Se entidade obrigatoria faltar, a FSM deve entrar em estado de coleta (ex: `awaiting_expense_value`) ao inves de repetir fallback infinito.
 - Ao receber a entidade pendente em mensagem subsequente, a FSM deve retomar o fluxo e concluir o update.
+
+## Regra de Ouro: Entidades Parciais
+
+- Tratamento de Entidades Parciais: a FSM nunca deve descartar dados validos.
+- Se uma intencao exige 3 variaveis e o LLM extrai 2, a FSM deve salvar essas 2 na sessao do usuario e perguntar especificamente pela que falta, de forma amigavel.

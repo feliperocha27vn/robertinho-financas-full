@@ -26,8 +26,8 @@ export class TelegramProvider implements MessagingProvider {
       })
     })
 
-    this.bot.on('polling_error', error => {
-      console.error('Erro no polling do Telegram:', error.message || error)
+    this.bot.on('webhook_error', error => {
+      console.error('Erro no webhook do Telegram:', error.message || error)
     })
   }
 

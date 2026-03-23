@@ -1,10 +1,33 @@
+import { env } from '../env'
 import { makeProcessMessageUseCase } from '../factories/make-process-message-use-case'
 import { telegramBot } from '../lib/telegram'
 import { TelegramProvider } from '../providers/messaging/telegram-provider'
 
-export function startTelegramBot() {
+function getWebhookUrl() {
+  const appName = process.env.FLY_APP_NAME
+  if (!appName) {
+    return null
+  }
+
+  const secret = env.TELEGRAM_WEBHOOK_SECRET
+  const suffix = secret ? `?secret=${encodeURIComponent(secret)}` : ''
+  return `https://${appName}.fly.dev/webhook/telegram${suffix}`
+}
+
+export async function startTelegramBot() {
   const provider = new TelegramProvider(telegramBot)
   const processMessageUseCase = makeProcessMessageUseCase()
+
+  const webhookUrl = getWebhookUrl()
+  if (!webhookUrl) {
+    throw new Error(
+      'FLY_APP_NAME nao definido para configurar webhook do Telegram'
+    )
+  }
+
+  await telegramBot.deleteWebHook()
+  await telegramBot.setWebHook(webhookUrl)
+  console.log(`🤖 Telegram webhook configurado em ${webhookUrl}`)
 
   provider.onMessage(async message => {
     if (!message.rawChatId) {
@@ -30,5 +53,5 @@ export function startTelegramBot() {
     }
   })
 
-  console.log('🤖 Telegram Bot iniciado')
+  console.log('🤖 Telegram Bot iniciado (webhook mode)')
 }

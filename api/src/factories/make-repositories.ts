@@ -1,3 +1,4 @@
+import { GoogleCalendarProvider } from '../providers/calendar/google-calendar-provider'
 import { PrismaExpensesRepository } from '../repositories/prisma/prisma-expenses-repository'
 import { PrismaInstallmentsRepository } from '../repositories/prisma/prisma-installments-repository'
 import { PrismaRecipesRepository } from '../repositories/prisma/prisma-recipes-repository'
@@ -8,4 +9,5 @@ export const repositories = {
   installments: new PrismaInstallmentsRepository(),
   recipes: new PrismaRecipesRepository(),
   session: new PrismaSessionRepository(),
+  calendar: new GoogleCalendarProvider(),
 }

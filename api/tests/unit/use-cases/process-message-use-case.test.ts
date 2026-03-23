@@ -2,632 +2,276 @@ import { describe, expect, it, vi } from 'vitest'
 import { InMemorySessionRepository } from '../../../src/repositories/in-memory/in-memory-session-repository'
 import { ProcessMessageUseCase } from '../../../src/use-cases/conversation/process-message-use-case'
 
-const makeNoopUseCase = () => ({ execute: async () => ({}) })
+function makeSut(overrides?: {
+  generateReply?: (input: string, context: any) => Promise<any>
+}) {
+  const sessions = new InMemorySessionRepository()
+  const calendar = {
+    createEvent: vi.fn(),
+    listEvents: vi.fn(),
+  }
 
-describe('ProcessMessageUseCase', () => {
-  it('returns friendly guidance when user sends greeting', async () => {
-    const sessions = new InMemorySessionRepository()
-    const parseMessage = vi.fn().mockResolvedValue({ intent: 'greeting' })
+  const useCases = {
+    createExpense: { execute: vi.fn() },
+    createExpenseInstallment: { execute: vi.fn() },
+    createRecipe: { execute: vi.fn() },
+    getSumExpenses: { execute: vi.fn() },
+    getSumExpensesFixed: { execute: vi.fn() },
+    getRemainingInstallments: { execute: vi.fn() },
+    getAllRemainingInstallments: { execute: vi.fn() },
+    getSumExpensesOfLastMonthVariables: { execute: vi.fn() },
+    getUnpaidExpensesOfCurrentMonth: { execute: vi.fn() },
+    payInstallment: { execute: vi.fn() },
+    payAllUnpaidCurrentMonth: { execute: vi.fn() },
+    unpayExpense: { execute: vi.fn() },
+    accountsToPayByDayFifteen: { execute: vi.fn() },
+    getHomeData: { execute: vi.fn() },
+    getSumExpensesOfMonthVariables: { execute: vi.fn() },
+    accountsPayableNextMonth: { execute: vi.fn() },
+    payExpensesByNames: { execute: vi.fn() },
+    updateExpenseAmount: { execute: vi.fn() },
+  }
 
-    const sut = new ProcessMessageUseCase(
-      sessions,
-      {
-        parseMessage,
-      },
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any
-    )
+  const generateReply =
+    overrides?.generateReply ??
+    (async () => ({
+      message: 'ok',
+      history: [
+        { role: 'user', content: 'oi' },
+        { role: 'assistant', content: 'ok' },
+      ],
+    }))
+
+  const sut = new ProcessMessageUseCase(
+    sessions,
+    { generateReply },
+    calendar as any,
+    useCases.createExpense as any,
+    useCases.createExpenseInstallment as any,
+    useCases.createRecipe as any,
+    useCases.getSumExpenses as any,
+    useCases.getSumExpensesFixed as any,
+    useCases.getRemainingInstallments as any,
+    useCases.getAllRemainingInstallments as any,
+    useCases.getSumExpensesOfLastMonthVariables as any,
+    useCases.getUnpaidExpensesOfCurrentMonth as any,
+    useCases.payInstallment as any,
+    useCases.payAllUnpaidCurrentMonth as any,
+    useCases.unpayExpense as any,
+    useCases.accountsToPayByDayFifteen as any,
+    useCases.getHomeData as any,
+    useCases.getSumExpensesOfMonthVariables as any,
+    useCases.accountsPayableNextMonth as any,
+    useCases.payExpensesByNames as any,
+    useCases.updateExpenseAmount as any
+  )
+
+  return { sut, sessions, useCases, calendar }
+}
+
+describe('ProcessMessageUseCase (all tools wired)', () => {
+  it('persists AI reply history', async () => {
+    const { sut, sessions } = makeSut({
+      generateReply: async () => ({
+        message: 'Tudo certo, registrado.',
+        history: [
+          { role: 'user', content: 'gastei 50 no ifood' },
+          { role: 'assistant', content: 'Tudo certo, registrado.' },
+        ],
+      }),
+    })
 
     const result = await sut.execute({
-      sessionId: 'telegram-hello',
-      text: 'ola',
-    })
-
-    expect(parseMessage).toHaveBeenCalledWith('ola', 'idle')
-    expect(result.message).toContain('Fala! Eu sou o Robertinho')
-  })
-
-  it('moves FSM to collecting_installment_due_date when Gemini returns installment without due date', async () => {
-    const sessions = new InMemorySessionRepository()
-    const parseMessage = vi.fn().mockResolvedValue({
-      intent: 'create_expense_installment',
-      description: 'celular',
-      amount: 2400,
-      category: 'CREDIT',
-      numberOfInstallments: 12,
-    })
-
-    const sut = new ProcessMessageUseCase(
-      sessions,
-      {
-        parseMessage,
-      },
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any
-    )
-
-    const result = await sut.execute({
-      sessionId: 'telegram-1',
-      text: 'comprei um celular em 12x',
-    })
-
-    expect(parseMessage).toHaveBeenCalledWith(
-      'comprei um celular em 12x',
-      'idle'
-    )
-    expect(result.message).toContain('data da primeira parcela')
-    const session = await sessions.findById('telegram-1')
-    expect(session?.currentState).toBe('collecting_installment_due_date')
-  })
-
-  it('completes installment flow when Gemini returns due date JSON', async () => {
-    const sessions = new InMemorySessionRepository()
-    const createExpenseInstallmentExecute = vi.fn().mockResolvedValue({})
-    const createExpenseInstallmentSpy = {
-      execute: createExpenseInstallmentExecute,
-    }
-
-    await sessions.save({
-      id: 'telegram-2',
-      currentState: 'collecting_installment_due_date',
-      context: {
-        pendingInstallment: {
-          description: 'notebook',
-          amount: 4500,
-          category: 'CREDIT',
-          numberOfInstallments: 10,
-        },
-      },
-      updatedAt: new Date(),
-    })
-
-    const parseMessage = vi.fn().mockResolvedValue({
-      intent: 'unknown',
-      firstDueDate: new Date('2026-04-15T00:00:00.000Z'),
-    })
-
-    const sut = new ProcessMessageUseCase(
-      sessions,
-      {
-        parseMessage,
-      },
-      makeNoopUseCase() as any,
-      createExpenseInstallmentSpy as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any
-    )
-
-    const result = await sut.execute({
-      sessionId: 'telegram-2',
-      text: '15/04/2026',
-    })
-
-    expect(parseMessage).toHaveBeenCalledWith(
-      '15/04/2026',
-      'collecting_installment_due_date'
-    )
-    expect(createExpenseInstallmentExecute).toHaveBeenCalledWith({
-      description: 'notebook',
-      amount: 4500,
-      category: 'CREDIT',
-      numberOfInstallments: 10,
-      firstDueDate: new Date('2026-04-15T00:00:00.000Z'),
-    })
-    expect(result.message).toBe('Despesa parcelada registrada com sucesso.')
-    const session = await sessions.findById('telegram-2')
-    expect(session?.currentState).toBe('idle')
-    expect(session?.context).toEqual({})
-  })
-
-  it('keeps collecting state when due date JSON is not returned yet', async () => {
-    const sessions = new InMemorySessionRepository()
-
-    await sessions.save({
-      id: 'telegram-3',
-      currentState: 'collecting_installment_due_date',
-      context: {
-        pendingInstallment: {
-          description: 'notebook',
-          amount: 4500,
-          category: 'CREDIT',
-          numberOfInstallments: 10,
-        },
-      },
-      updatedAt: new Date(),
-    })
-
-    const parseMessage = vi.fn().mockResolvedValue({
-      intent: 'unknown',
-    })
-
-    const sut = new ProcessMessageUseCase(
-      sessions,
-      {
-        parseMessage,
-      },
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any
-    )
-
-    const result = await sut.execute({
-      sessionId: 'telegram-3',
-      text: 'ainda estou pensando',
-    })
-
-    expect(parseMessage).toHaveBeenCalledWith(
-      'ainda estou pensando',
-      'collecting_installment_due_date'
-    )
-    expect(result.message).toBe('Nao consegui entender. Pode reformular?')
-
-    const session = await sessions.findById('telegram-3')
-    expect(session?.currentState).toBe('collecting_installment_due_date')
-  })
-
-  it('returns formatted create-expense message from presenter', async () => {
-    const sessions = new InMemorySessionRepository()
-    const createExpenseExecute = vi.fn().mockResolvedValue({
-      message:
-        '✅ <b>Despesa Registrada com Sucesso!</b>\n💰 <b>Valor:</b> R$ 50,00',
-    })
-
-    const sut = new ProcessMessageUseCase(
-      sessions,
-      {
-        parseMessage: vi.fn().mockResolvedValue({
-          intent: 'create_expense',
-          description: 'ifood',
-          amount: 50,
-          category: 'OTHERS',
-          isFixed: false,
-        }),
-      },
-      { execute: createExpenseExecute } as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any
-    )
-
-    const result = await sut.execute({
-      sessionId: 'telegram-expense',
+      sessionId: 'telegram-basic',
       text: 'gastei 50 no ifood',
     })
 
-    expect(createExpenseExecute).toHaveBeenCalledWith({
-      description: 'ifood',
-      amount: 50,
-      category: 'OTHERS',
-      isFixed: false,
-    })
-    expect(result.message).toContain(
-      '✅ <b>Despesa Registrada com Sucesso!</b>'
-    )
+    expect(result.message).toBe('Tudo certo, registrado.')
+    const saved = await sessions.findById('telegram-basic')
+    expect(saved?.history.length).toBe(2)
   })
 
-  it('returns dashboard format for monthly summary intent', async () => {
-    const sessions = new InMemorySessionRepository()
+  it('wires get_remaining_installments and get_all_remaining_installments tools', async () => {
+    const { sut, useCases } = makeSut({
+      generateReply: async (_input, context) => {
+        await context.executeTool({
+          name: 'get_remaining_installments',
+          args: { nameExpense: 'moto' },
+        })
+        await context.executeTool({
+          name: 'get_all_remaining_installments',
+          args: {},
+        })
 
-    const sut = new ProcessMessageUseCase(
-      sessions,
-      {
-        parseMessage: vi.fn().mockResolvedValue({
-          intent: 'get_sum_expenses',
-        }),
-      },
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      {
-        execute: vi.fn().mockResolvedValue({
-          totalExpenses: '2050',
-          items: [],
-        }),
-      } as any,
-      {
-        execute: vi.fn().mockResolvedValue({
-          totalFixedExpenses: '1200',
-          items: [],
-        }),
-      } as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any
-    )
-
-    const result = await sut.execute({
-      sessionId: 'telegram-summary',
-      text: 'resumo',
-    })
-
-    expect(result.message).toContain('📊 <b>Resumo de')
-    expect(result.message).toContain('🔴 <b>Despesas Fixas:</b>')
-    expect(result.message).toContain('🟡 <b>Despesas Variaveis:</b>')
-    expect(result.message).toContain('📉 <b>TOTAL GASTO:</b>')
-  })
-
-  it('returns formatted unpaid-current-month message with item list', async () => {
-    const sessions = new InMemorySessionRepository()
-
-    const sut = new ProcessMessageUseCase(
-      sessions,
-      {
-        parseMessage: vi.fn().mockResolvedValue({
-          intent: 'get_unpaid_expenses_of_current_month',
-        }),
-      },
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      {
-        execute: vi.fn().mockResolvedValue({
-          unpaidExpenses: [
-            { description: 'Internet', amount: 120 },
-            { description: 'Aluguel', amount: 686 },
+        return {
+          message: 'ok',
+          history: [
+            { role: 'user', content: 'parcelamentos' },
+            { role: 'assistant', content: 'ok' },
           ],
-          totalUnpaidAmount: 806,
-        }),
-      } as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any
-    )
-
-    const result = await sut.execute({
-      sessionId: 'telegram-unpaid',
-      text: 'o que eu ainda tenho para pagar esse mes?',
+        }
+      },
     })
 
-    expect(result.message).toContain('🧾 <b>Pendencias do Mes</b>')
-    expect(result.message).toContain('💰 <b>Total pendente neste mes:</b> R$')
-    expect(result.message).toContain('• Internet')
-  })
+    await sut.execute({ sessionId: 't-parcelas', text: 'parcelamentos' })
 
-  it('handles pay_expenses intent without fallback to unknown', async () => {
-    const sessions = new InMemorySessionRepository()
-
-    const sut = new ProcessMessageUseCase(
-      sessions,
-      {
-        parseMessage: vi.fn().mockResolvedValue({
-          intent: 'pay_expenses',
-          items: ['renegociacao', 'cartao'],
-        }),
-      },
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      {
-        execute: vi.fn().mockResolvedValue({
-          status: 'paid',
-          paidDescriptions: ['Renegociacao', 'Cartao'],
-          notFound: [],
-        }),
-      } as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any
-    )
-
-    const result = await sut.execute({
-      sessionId: 'telegram-pay-expenses',
-      text: 'acabei de pagar a renegociacao e o cartao',
+    expect(useCases.getRemainingInstallments.execute).toHaveBeenCalledWith({
+      nameExpense: 'moto',
     })
-
-    expect(result.message).toContain('✅ <b>Contas marcadas como pagas:</b>')
-    expect(result.message).not.toContain('Nao consegui entender')
+    expect(useCases.getAllRemainingInstallments.execute).toHaveBeenCalledTimes(
+      1
+    )
   })
 
-  it('asks disambiguation question when pay_expenses is ambiguous', async () => {
-    const sessions = new InMemorySessionRepository()
+  it('wires all remaining use-cases to tool callbacks', async () => {
+    const { sut, useCases } = makeSut({
+      generateReply: async (_input, context) => {
+        await context.executeTool({
+          name: 'create_expense',
+          args: { description: 'ifood', amount: 50, category: 'OTHERS' },
+        })
+        await context.executeTool({
+          name: 'create_expense_installment',
+          args: {
+            description: 'notebook',
+            amount: 3000,
+            category: 'CREDIT',
+            numberOfInstallments: 10,
+            firstDueDateIso: '2026-04-10T00:00:00.000Z',
+          },
+        })
+        await context.executeTool({
+          name: 'create_recipe',
+          args: { description: 'salario', amount: 5000 },
+        })
+        await context.executeTool({ name: 'get_sum_expenses', args: {} })
+        await context.executeTool({ name: 'get_sum_expenses_fixed', args: {} })
+        await context.executeTool({
+          name: 'get_sum_expenses_of_last_month_variables',
+          args: {},
+        })
+        await context.executeTool({
+          name: 'get_sum_expenses_of_month_variables',
+          args: {},
+        })
+        await context.executeTool({
+          name: 'get_unpaid_expenses_of_current_month',
+          args: {},
+        })
+        await context.executeTool({
+          name: 'pay_installment',
+          args: { nameExpense: 'moto' },
+        })
+        await context.executeTool({
+          name: 'pay_all_unpaid_current_month',
+          args: {},
+        })
+        await context.executeTool({
+          name: 'unpay_expense',
+          args: { nameExpense: 'energia' },
+        })
+        await context.executeTool({
+          name: 'accounts_to_pay_by_day_fifteen',
+          args: {},
+        })
+        await context.executeTool({
+          name: 'accounts_payable_next_month',
+          args: {},
+        })
+        await context.executeTool({
+          name: 'pay_expenses_by_names',
+          args: { items: ['agua', 'luz'] },
+        })
+        await context.executeTool({
+          name: 'update_expense_amount',
+          args: { nameExpense: 'energia', amount: 120 },
+        })
+        await context.executeTool({ name: 'get_home_data', args: {} })
 
-    const sut = new ProcessMessageUseCase(
-      sessions,
-      {
-        parseMessage: vi.fn().mockResolvedValue({
-          intent: 'pay_expenses',
-          items: ['cartao'],
-        }),
-      },
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      {
-        execute: vi.fn().mockResolvedValue({
-          status: 'ambiguous',
-          term: 'cartao',
-          options: ['Cartao Nubank', 'Cartao Inter'],
-        }),
-      } as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any
-    )
-
-    const result = await sut.execute({
-      sessionId: 'telegram-pay-expenses-ambiguous',
-      text: 'paguei cartao',
-    })
-
-    expect(result.message).toContain(
-      '🤔 <b>Encontrei mais de uma opcao para:</b>'
-    )
-    expect(result.message).toContain('Cartao Nubank')
-    expect(result.message).toContain('Cartao Inter')
-  })
-
-  it('returns detailed dashboard for accounts payable next month', async () => {
-    const sessions = new InMemorySessionRepository()
-
-    const sut = new ProcessMessageUseCase(
-      sessions,
-      {
-        parseMessage: vi.fn().mockResolvedValue({
-          intent: 'accounts_payable_next_month',
-        }),
-      },
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      {
-        execute: vi.fn().mockResolvedValue({
-          accountsPayableNextMonth: [
-            { description: 'Energia', amount: 130 },
-            { description: 'Internet', amount: 99.9 },
+        return {
+          message: 'ok',
+          history: [
+            { role: 'user', content: 'teste geral' },
+            { role: 'assistant', content: 'ok' },
           ],
-          totalAmountForPayableNextMonth: 229.9,
-        }),
-      } as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any
-    )
-
-    const result = await sut.execute({
-      sessionId: 'telegram-next-month',
-      text: 'que tenho para pagar mes que vem?',
-    })
-
-    expect(result.message).toContain('📅 <b>Contas para')
-    expect(result.message).toContain('🧾 <b>Quantidade de contas:</b> 2')
-    expect(result.message).toContain('• Energia')
-    expect(result.message).toContain('• Internet')
-  })
-
-  it('updates expense amount via update_expense_amount intent', async () => {
-    const sessions = new InMemorySessionRepository()
-
-    const sut = new ProcessMessageUseCase(
-      sessions,
-      {
-        parseMessage: vi.fn().mockResolvedValue({
-          intent: 'update_expense',
-          expenseName: 'energia',
-          newValue: 110,
-        }),
+        }
       },
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      {
-        execute: vi.fn().mockResolvedValue({
-          status: 'updated',
-          description: 'Energia',
-          oldAmount: 130,
-          newAmount: 110,
-        }),
-      } as any
-    )
-
-    const result = await sut.execute({
-      sessionId: 'telegram-update-expense',
-      text: 'mude o valor da despesa energia para 110',
     })
 
-    expect(result.message).toContain('✏️ <b>Despesa atualizada com sucesso!</b>')
-    expect(result.message).toContain('🧾 <b>Despesa:</b> Energia')
-  })
+    await sut.execute({ sessionId: 't-all-tools', text: 'teste geral' })
 
-  it('enters awaiting_expense_value when update_expense comes without value', async () => {
-    const sessions = new InMemorySessionRepository()
-
-    const sut = new ProcessMessageUseCase(
-      sessions,
-      {
-        parseMessage: vi.fn().mockResolvedValue({
-          intent: 'update_expense',
-          expenseName: 'energia',
-        }),
-      },
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any
-    )
-
-    const result = await sut.execute({
-      sessionId: 'telegram-awaiting-update',
-      text: 'mude a energia',
+    expect(useCases.createExpense.execute).toHaveBeenCalled()
+    expect(useCases.createExpenseInstallment.execute).toHaveBeenCalled()
+    expect(useCases.createRecipe.execute).toHaveBeenCalledWith({
+      description: 'salario',
+      amount: 5000,
     })
-
-    expect(result.message).toContain('Me fala o novo valor para a despesa')
-    const session = await sessions.findById('telegram-awaiting-update')
-    expect(session?.currentState).toBe('awaiting_expense_value')
-  })
-
-  it('updates expense when awaiting_expense_value receives only numeric value', async () => {
-    const sessions = new InMemorySessionRepository()
-
-    await sessions.save({
-      id: 'telegram-awaiting-update-2',
-      currentState: 'awaiting_expense_value',
-      context: {
-        pendingUpdateExpense: {
-          expenseName: 'energia',
-        },
-      },
-      updatedAt: new Date(),
+    expect(useCases.getSumExpenses.execute).toHaveBeenCalled()
+    expect(useCases.getSumExpensesFixed.execute).toHaveBeenCalled()
+    expect(
+      useCases.getSumExpensesOfLastMonthVariables.execute
+    ).toHaveBeenCalled()
+    expect(useCases.getSumExpensesOfMonthVariables.execute).toHaveBeenCalled()
+    expect(useCases.getUnpaidExpensesOfCurrentMonth.execute).toHaveBeenCalled()
+    expect(useCases.payInstallment.execute).toHaveBeenCalledWith({
+      nameExpense: 'moto',
     })
-
-    const updateExecute = vi.fn().mockResolvedValue({
-      status: 'updated',
-      description: 'Energia',
-      oldAmount: 130,
-      newAmount: 110,
-    })
-
-    const sut = new ProcessMessageUseCase(
-      sessions,
-      {
-        parseMessage: vi.fn().mockResolvedValue({
-          intent: 'update_expense',
-          newValue: 110,
-        }),
-      },
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      makeNoopUseCase() as any,
-      { execute: updateExecute } as any
-    )
-
-    const result = await sut.execute({
-      sessionId: 'telegram-awaiting-update-2',
-      text: '110',
-    })
-
-    expect(updateExecute).toHaveBeenCalledWith({
+    expect(useCases.payAllUnpaidCurrentMonth.execute).toHaveBeenCalled()
+    expect(useCases.unpayExpense.execute).toHaveBeenCalledWith({
       nameExpense: 'energia',
-      amount: 110,
     })
-    expect(result.message).toContain('✏️ <b>Despesa atualizada com sucesso!</b>')
+    expect(useCases.accountsToPayByDayFifteen.execute).toHaveBeenCalled()
+    expect(useCases.accountsPayableNextMonth.execute).toHaveBeenCalled()
+    expect(useCases.payExpensesByNames.execute).toHaveBeenCalledWith({
+      items: ['agua', 'luz'],
+    })
+    expect(useCases.updateExpenseAmount.execute).toHaveBeenCalledWith({
+      nameExpense: 'energia',
+      amount: 120,
+    })
+    expect(useCases.getHomeData.execute).toHaveBeenCalled()
+  })
 
-    const session = await sessions.findById('telegram-awaiting-update-2')
-    expect(session?.currentState).toBe('idle')
+  it('wires create_calendar_event and list_calendar_events tools', async () => {
+    const { sut, calendar } = makeSut({
+      generateReply: async (_input, context) => {
+        await context.executeTool({
+          name: 'create_calendar_event',
+          args: {
+            summary: 'Consulta medica',
+            startTime: '2026-04-15T13:00:00.000Z',
+            endTime: '2026-04-15T14:00:00.000Z',
+          },
+        })
+
+        await context.executeTool({
+          name: 'list_calendar_events',
+          args: {
+            timeMin: '2026-04-01T00:00:00.000Z',
+            timeMax: '2026-04-30T23:59:59.999Z',
+          },
+        })
+
+        return {
+          message: 'ok',
+          history: [
+            { role: 'user', content: 'agenda' },
+            { role: 'assistant', content: 'ok' },
+          ],
+        }
+      },
+    })
+
+    await sut.execute({ sessionId: 't-calendar', text: 'agenda' })
+
+    expect(calendar.createEvent).toHaveBeenCalledWith({
+      summary: 'Consulta medica',
+      startTime: '2026-04-15T13:00:00.000Z',
+      endTime: '2026-04-15T14:00:00.000Z',
+    })
+    expect(calendar.listEvents).toHaveBeenCalledWith({
+      timeMin: '2026-04-01T00:00:00.000Z',
+      timeMax: '2026-04-30T23:59:59.999Z',
+    })
   })
 })
