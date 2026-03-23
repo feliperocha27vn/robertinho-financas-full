@@ -12,3 +12,9 @@
 - Testes unitarios devem instanciar use cases com repositorios em memoria.
 - Mockar providers (IA/mensageria) com objetos simples contendo `execute`/metodos assinados.
 - Cobrir cenarios de sucesso, falha de regra de negocio e entradas incompletas.
+
+## Fluxos de Update
+
+- Para comandos de atualizacao (ex: `UPDATE_EXPENSE`), o use case deve receber entidades completas quando possivel (`expenseName` + `newValue`).
+- Se entidade obrigatoria faltar, a FSM deve entrar em estado de coleta (ex: `awaiting_expense_value`) ao inves de repetir fallback infinito.
+- Ao receber a entidade pendente em mensagem subsequente, a FSM deve retomar o fluxo e concluir o update.

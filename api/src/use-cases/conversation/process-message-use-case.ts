@@ -1,4 +1,6 @@
+import { addMonths } from 'date-fns'
 import { FiniteStateMachine } from '../../conversation/fsm'
+import { MessageFormatter } from '../../presenters/message-formatter'
 import type {
   AiProvider,
   ParsedAssistantCommand,
@@ -15,8 +17,10 @@ import type { GetSumExpensesOfMonthVariablesUseCase } from '../expenses/get-sum-
 import type { GetSumExpensesUseCase } from '../expenses/get-sum-expenses-use-case'
 import type { GetUnpaidExpensesOfCurrentMonthUseCase } from '../expenses/get-unpaid-expenses-of-current-month-use-case'
 import type { PayAllUnpaidCurrentMonthUseCase } from '../expenses/pay-all-unpaid-current-month-use-case'
+import type { PayExpensesByNamesUseCase } from '../expenses/pay-expenses-by-names-use-case'
 import type { PayInstallmentUseCase } from '../expenses/pay-installment-use-case'
 import type { UnpayExpenseUseCase } from '../expenses/unpay-expense-use-case'
+import type { UpdateExpenseAmountUseCase } from '../expenses/update-expense-amount-use-case'
 import type { CreateRecipeUseCase } from '../recipes/create-recipe-use-case'
 
 interface Input {
@@ -29,6 +33,10 @@ interface PendingInstallmentContext {
   amount: number
   category: 'TRANSPORT' | 'OTHERS' | 'STUDIES' | 'RESIDENCE' | 'CREDIT'
   numberOfInstallments: number
+}
+
+interface PendingUpdateExpenseContext {
+  expenseName: string
 }
 
 export class ProcessMessageUseCase {
@@ -47,8 +55,10 @@ export class ProcessMessageUseCase {
     private readonly getRemainingInstallmentsUseCase: GetRemainingInstallmentsUseCase,
     private readonly getAllRemainingInstallmentsUseCase: GetAllRemainingInstallmentsUseCase,
     private readonly payInstallmentUseCase: PayInstallmentUseCase,
+    private readonly payExpensesByNamesUseCase: PayExpensesByNamesUseCase,
     private readonly payAllUnpaidCurrentMonthUseCase: PayAllUnpaidCurrentMonthUseCase,
-    private readonly unpayExpenseUseCase: UnpayExpenseUseCase
+    private readonly unpayExpenseUseCase: UnpayExpenseUseCase,
+    private readonly updateExpenseAmountUseCase: UpdateExpenseAmountUseCase
   ) {}
 
   async execute(input: Input): Promise<{ message: string }> {
@@ -78,6 +88,32 @@ export class ProcessMessageUseCase {
         when: parsed => {
           const command = parsed as ParsedAssistantCommand
           return !!command.firstDueDate
+        },
+      },
+      {
+        from: 'idle',
+        to: 'awaiting_expense_value',
+        when: parsed => {
+          const command = parsed as ParsedAssistantCommand
+          const intent =
+            command.intent === 'update_expense_amount'
+              ? 'update_expense'
+              : command.intent
+
+          return (
+            intent === 'update_expense' &&
+            !!(command.expenseName ?? command.nameExpense) &&
+            command.newValue === undefined &&
+            command.amount === undefined
+          )
+        },
+      },
+      {
+        from: 'awaiting_expense_value',
+        to: 'idle',
+        when: parsed => {
+          const command = parsed as ParsedAssistantCommand
+          return command.newValue !== undefined || command.amount !== undefined
         },
       },
     ])
@@ -139,6 +175,70 @@ export class ProcessMessageUseCase {
       }
     }
 
+    if (state === 'awaiting_expense_value') {
+      const pending = context.pendingUpdateExpense as
+        | PendingUpdateExpenseContext
+        | undefined
+      const parsedValue = parsed.newValue ?? parsed.amount
+
+      if (pending && parsedValue !== undefined) {
+        const result = await this.updateExpenseAmountUseCase.execute({
+          nameExpense: pending.expenseName,
+          amount: parsedValue,
+        })
+
+        await this.sessionRepository.save({
+          id: input.sessionId,
+          currentState: 'idle',
+          context: {},
+          updatedAt: new Date(),
+        })
+
+        if (result.status === 'not_found') {
+          return {
+            message:
+              'Nao encontrei essa despesa para atualizar. Me fala um nome mais especifico.',
+          }
+        }
+
+        if (result.status === 'ambiguous') {
+          return {
+            message: MessageFormatter.updateExpenseAmountAmbiguity({
+              options: result.options,
+            }),
+          }
+        }
+
+        return {
+          message: MessageFormatter.updateExpenseAmountSuccess({
+            description: result.description,
+            oldAmount: result.oldAmount,
+            newAmount: result.newAmount,
+          }),
+        }
+      }
+    }
+
+    if (nextState === 'awaiting_expense_value') {
+      const expenseName = parsed.expenseName ?? parsed.nameExpense
+
+      await this.sessionRepository.save({
+        id: input.sessionId,
+        currentState: 'awaiting_expense_value',
+        context: {
+          ...context,
+          pendingUpdateExpense: {
+            expenseName,
+          } satisfies PendingUpdateExpenseContext,
+        },
+        updatedAt: new Date(),
+      })
+
+      return {
+        message: `Me fala o novo valor para a despesa <b>${expenseName}</b>.`,
+      }
+    }
+
     let responseMessage = 'Nao consegui entender. Pode reformular?'
 
     switch (parsed.intent) {
@@ -158,13 +258,13 @@ export class ProcessMessageUseCase {
             'Preciso de descricao, valor e categoria para registrar a despesa.'
           break
         }
-        await this.createExpenseUseCase.execute({
+        const result = await this.createExpenseUseCase.execute({
           description: parsed.description,
           amount: parsed.amount,
           category: parsed.category,
           isFixed: parsed.isFixed ?? false,
         })
-        responseMessage = 'Despesa registrada com sucesso.'
+        responseMessage = result.message
         break
       }
 
@@ -211,40 +311,93 @@ export class ProcessMessageUseCase {
 
       case 'get_sum_expenses': {
         const result = await this.getSumExpensesUseCase.execute()
-        responseMessage = `Total de despesas: R$ ${Number(result.totalExpenses).toFixed(2)}`
+        const totalAll = Number(result.totalExpenses)
+        const fixedResult = await this.getSumExpensesFixedUseCase.execute()
+        const fixedTotal = Number(fixedResult.totalFixedExpenses)
+        const variableTotal = Math.max(0, totalAll - fixedTotal)
+
+        responseMessage = MessageFormatter.monthlySummary({
+          referenceDate: new Date(),
+          fixedExpenses: fixedTotal,
+          variableExpenses: variableTotal,
+          overallTotal: totalAll,
+        })
         break
       }
 
       case 'get_sum_expenses_fixed': {
         const result = await this.getSumExpensesFixedUseCase.execute()
-        responseMessage = `Total de despesas fixas: R$ ${Number(result.totalFixedExpenses).toFixed(2)}`
+        responseMessage = MessageFormatter.totalWithItems({
+          title: 'Despesas Fixas',
+          emoji: '🔴',
+          totalLabel: 'Total de despesas fixas',
+          totalAmount: Number(result.totalFixedExpenses),
+          items: result.items.map(item => ({
+            description: item.description,
+            amount: item.amount,
+          })),
+        })
         break
       }
 
       case 'get_sum_expenses_of_month_variables': {
         const result =
           await this.getSumExpensesOfMonthVariablesUseCase.execute()
-        responseMessage = `Total variavel do mes: R$ ${result.totalExpensesOfMonth.toFixed(2)}`
+
+        const variableItems = result.items.map(item => ({
+          description: item.description,
+          amount: item.amount,
+        }))
+
+        responseMessage = MessageFormatter.totalWithItems({
+          title: 'Despesas Variaveis do Mes',
+          emoji: '🟡',
+          totalLabel: 'Total variavel do mes',
+          totalAmount: result.totalExpensesOfMonth,
+          items: variableItems,
+        })
         break
       }
 
       case 'get_sum_expenses_of_last_month_variables': {
         const result =
           await this.getSumExpensesOfLastMonthVariablesUseCase.execute()
-        responseMessage = `Total variavel do mes passado: R$ ${result.totalExpensesOfLastMonth.toFixed(2)}`
+        responseMessage = MessageFormatter.totalWithItems({
+          title: 'Despesas Variaveis do Mes Passado',
+          emoji: '📆',
+          totalLabel: 'Total variavel do mes passado',
+          totalAmount: result.totalExpensesOfLastMonth,
+          items: result.items.map(item => ({
+            description: item.description,
+            amount: item.amount,
+          })),
+        })
         break
       }
 
       case 'accounts_payable_next_month': {
         const result = await this.accountsPayableNextMonthUseCase.execute()
-        responseMessage = `Total a pagar no proximo mes: R$ ${result.totalAmountForPayableNextMonth.toFixed(2)}`
+        responseMessage = MessageFormatter.accountsPayableNextMonth({
+          referenceDate: addMonths(new Date(), 1),
+          items: result.accountsPayableNextMonth,
+          totalAmount: result.totalAmountForPayableNextMonth,
+        })
         break
       }
 
       case 'get_unpaid_expenses_of_current_month': {
         const result =
           await this.getUnpaidExpensesOfCurrentMonthUseCase.execute()
-        responseMessage = `Total pendente neste mes: R$ ${result.totalUnpaidAmount.toFixed(2)}`
+        responseMessage = MessageFormatter.totalWithItems({
+          title: 'Pendencias do Mes',
+          emoji: '🧾',
+          totalLabel: 'Total pendente neste mes',
+          totalAmount: result.totalUnpaidAmount,
+          items: result.unpaidExpenses.map(item => ({
+            description: item.description,
+            amount: item.amount,
+          })),
+        })
         break
       }
 
@@ -284,6 +437,32 @@ export class ProcessMessageUseCase {
         break
       }
 
+      case 'pay_expenses': {
+        if (!parsed.items || parsed.items.length === 0) {
+          responseMessage =
+            'Me fala quais contas voce pagou. Exemplo: "paguei luz e agua".'
+          break
+        }
+
+        const result = await this.payExpensesByNamesUseCase.execute({
+          items: parsed.items,
+        })
+
+        if (result.status === 'ambiguous') {
+          responseMessage = MessageFormatter.payExpensesAmbiguity({
+            term: result.term,
+            options: result.options,
+          })
+          break
+        }
+
+        responseMessage = MessageFormatter.payExpensesSuccess({
+          paidDescriptions: result.paidDescriptions,
+          notFound: result.notFound,
+        })
+        break
+      }
+
       case 'pay_all_unpaid_current_month': {
         const result = await this.payAllUnpaidCurrentMonthUseCase.execute()
         responseMessage = `Concluido. ${result.paidCount} item(ns) marcados como pagos.`
@@ -301,6 +480,44 @@ export class ProcessMessageUseCase {
         responseMessage = result.found
           ? 'Pagamento desmarcado com sucesso.'
           : 'Nao encontrei essa despesa.'
+        break
+      }
+
+      case 'update_expense':
+      case 'update_expense_amount': {
+        const expenseName = parsed.expenseName ?? parsed.nameExpense
+        const newValue = parsed.newValue ?? parsed.amount
+
+        if (!expenseName || newValue === undefined) {
+          responseMessage =
+            'Me diga a despesa e o novo valor. Exemplo: "mude energia para 110".'
+          break
+        }
+
+        const result = await this.updateExpenseAmountUseCase.execute({
+          nameExpense: expenseName,
+          amount: newValue,
+        })
+
+        if (result.status === 'not_found') {
+          responseMessage =
+            'Nao encontrei essa despesa para atualizar. Me fala um nome mais especifico.'
+          break
+        }
+
+        if (result.status === 'ambiguous') {
+          responseMessage = MessageFormatter.updateExpenseAmountAmbiguity({
+            options: result.options,
+          })
+          break
+        }
+
+        responseMessage = MessageFormatter.updateExpenseAmountSuccess({
+          description: result.description,
+          oldAmount: result.oldAmount,
+          newAmount: result.newAmount,
+        })
+
         break
       }
 

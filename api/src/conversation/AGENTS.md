@@ -9,3 +9,4 @@
 
 - Evite efeitos colaterais fora do `ProcessMessageUseCase`.
 - Mensagens de fallback devem ser padronizadas para entradas desconhecidas.
+- Para qualquer resposta de soma/resumo/relatorio financeiro, o retorno deve ser formatado via Presenter (nunca string crua no switch da FSM).

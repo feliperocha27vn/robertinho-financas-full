@@ -21,7 +21,9 @@ export function makeProcessMessageUseCase() {
     useCases.getRemainingInstallments,
     useCases.getAllRemainingInstallments,
     useCases.payInstallment,
+    useCases.payExpensesByNames,
     useCases.payAllUnpaidCurrentMonth,
-    useCases.unpayExpense
+    useCases.unpayExpense,
+    useCases.updateExpenseAmount
   )
 }

@@ -32,6 +32,8 @@ export class TelegramProvider implements MessagingProvider {
   }
 
   async sendMessage(targetId: string, message: string): Promise<void> {
-    await this.bot.sendMessage(Number(targetId), message)
+    await this.bot.sendMessage(Number(targetId), message, {
+      parse_mode: 'HTML',
+    })
   }
 }

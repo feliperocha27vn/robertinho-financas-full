@@ -5,6 +5,7 @@ import type {
   CreateExpenseInput,
   CreateInstallmentExpenseInput,
   ExpenseSearchItem,
+  ExpenseSearchManyItem,
   ExpensesRepository,
 } from '../contracts/expenses-repository'
 
@@ -98,6 +99,40 @@ export class PrismaExpensesRepository implements ExpensesRepository {
       amount: Number(found.amount),
       isFixed: found.isFixed,
     }
+  }
+
+  async findManyByDescriptionContains(
+    nameExpense: string
+  ): Promise<ExpenseSearchManyItem[]> {
+    const items = await prisma.expenses.findMany({
+      where: {
+        description: {
+          contains: nameExpense,
+          mode: 'insensitive',
+        },
+      },
+      select: {
+        id: true,
+        description: true,
+        amount: true,
+        isFixed: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return items.map(item => ({
+      id: item.id,
+      description: item.description,
+      amount: Number(item.amount),
+      isFixed: item.isFixed,
+    }))
+  }
+
+  async updateAmountById(id: string, amount: number): Promise<void> {
+    await prisma.expenses.update({
+      where: { id },
+      data: { amount: new Prisma.Decimal(amount) },
+    })
   }
 
   async findAll(): Promise<ExpenseItem[]> {

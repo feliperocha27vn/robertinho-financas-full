@@ -45,6 +45,8 @@ describe('startTelegramBot', () => {
       sessionId: 'telegram-123',
       text: 'oi',
     })
-    expect(botMock.sendMessage).toHaveBeenCalledWith(999, 'resposta telegram')
+    expect(botMock.sendMessage).toHaveBeenCalledWith(999, 'resposta telegram', {
+      parse_mode: 'HTML',
+    })
   })
 })

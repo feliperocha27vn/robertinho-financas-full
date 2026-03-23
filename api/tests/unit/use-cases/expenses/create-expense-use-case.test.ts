@@ -7,7 +7,7 @@ describe('CreateExpenseUseCase', () => {
     const expensesRepository = new InMemoryExpensesRepository()
     const sut = new CreateExpenseUseCase(expensesRepository)
 
-    await sut.execute({
+    const result = await sut.execute({
       description: 'Uber',
       amount: 50,
       category: 'TRANSPORT',
@@ -22,5 +22,11 @@ describe('CreateExpenseUseCase', () => {
         category: 'TRANSPORT',
       })
     )
+    expect(result.message).toContain(
+      '✅ <b>Despesa Registrada com Sucesso!</b>'
+    )
+    expect(result.message).toContain('🏷️ <b>Categoria:</b> Transporte')
+    expect(result.message).toContain('💰 <b>Valor:</b> R$')
+    expect(result.message).toContain('📊 <b>Total parcial do mes:</b> R$')
   })
 })

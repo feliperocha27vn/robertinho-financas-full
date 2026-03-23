@@ -43,6 +43,8 @@ describe('TelegramProvider', () => {
 
     await provider.sendMessage('999', 'teste')
 
-    expect(botMock.sendMessage).toHaveBeenCalledWith(999, 'teste')
+    expect(botMock.sendMessage).toHaveBeenCalledWith(999, 'teste', {
+      parse_mode: 'HTML',
+    })
   })
 })

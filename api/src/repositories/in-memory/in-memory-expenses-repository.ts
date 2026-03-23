@@ -4,6 +4,7 @@ import type {
   CreateExpenseInput,
   CreateInstallmentExpenseInput,
   ExpenseSearchItem,
+  ExpenseSearchManyItem,
   ExpensesRepository,
 } from '../contracts/expenses-repository'
 import type { InMemoryInstallmentsRepository } from './in-memory-installments-repository'
@@ -85,6 +86,28 @@ export class InMemoryExpensesRepository implements ExpensesRepository {
     }
 
     return expense
+  }
+
+  async findManyByDescriptionContains(
+    nameExpense: string
+  ): Promise<ExpenseSearchManyItem[]> {
+    return this.items
+      .filter(item =>
+        item.description.toLowerCase().includes(nameExpense.toLowerCase())
+      )
+      .map(item => ({
+        id: item.id,
+        description: item.description,
+        amount: item.amount,
+        isFixed: item.isFixed,
+      }))
+  }
+
+  async updateAmountById(id: string, amount: number): Promise<void> {
+    const item = this.items.find(expense => expense.id === id)
+    if (item) {
+      item.amount = amount
+    }
   }
 
   async findAll(): Promise<ExpenseItem[]> {

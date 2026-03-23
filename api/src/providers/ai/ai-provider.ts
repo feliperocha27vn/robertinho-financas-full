@@ -2,6 +2,9 @@ import type { TransactionType } from '../../domain/finance'
 
 export type AssistantIntent =
   | 'greeting'
+  | 'pay_expenses'
+  | 'update_expense'
+  | 'update_expense_amount'
   | 'create_expense'
   | 'create_expense_installment'
   | 'create_new_recipe'
@@ -26,6 +29,9 @@ export interface ParsedAssistantCommand {
   isFixed?: boolean
   numberOfInstallments?: number
   nameExpense?: string
+  expenseName?: string
+  items?: string[]
+  newValue?: number
   firstDueDate?: Date
 }
 

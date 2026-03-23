@@ -10,8 +10,10 @@ import { GetSumExpensesOfMonthVariablesUseCase } from '../use-cases/expenses/get
 import { GetSumExpensesUseCase } from '../use-cases/expenses/get-sum-expenses-use-case'
 import { GetUnpaidExpensesOfCurrentMonthUseCase } from '../use-cases/expenses/get-unpaid-expenses-of-current-month-use-case'
 import { PayAllUnpaidCurrentMonthUseCase } from '../use-cases/expenses/pay-all-unpaid-current-month-use-case'
+import { PayExpensesByNamesUseCase } from '../use-cases/expenses/pay-expenses-by-names-use-case'
 import { PayInstallmentUseCase } from '../use-cases/expenses/pay-installment-use-case'
 import { UnpayExpenseUseCase } from '../use-cases/expenses/unpay-expense-use-case'
+import { UpdateExpenseAmountUseCase } from '../use-cases/expenses/update-expense-amount-use-case'
 import { CreateRecipeUseCase } from '../use-cases/recipes/create-recipe-use-case'
 import { GetHomeDataUseCase } from '../use-cases/summary/get-home-data-use-case'
 import { repositories } from './make-repositories'
@@ -48,11 +50,19 @@ export const useCases = {
     repositories.expenses,
     repositories.installments
   ),
+  payExpensesByNames: new PayExpensesByNamesUseCase(
+    repositories.expenses,
+    repositories.installments
+  ),
   payAllUnpaidCurrentMonth: new PayAllUnpaidCurrentMonthUseCase(
     repositories.expenses,
     repositories.installments
   ),
   unpayExpense: new UnpayExpenseUseCase(
+    repositories.expenses,
+    repositories.installments
+  ),
+  updateExpenseAmount: new UpdateExpenseAmountUseCase(
     repositories.expenses,
     repositories.installments
   ),

@@ -171,4 +171,19 @@ export class InMemoryInstallmentsRepository implements InstallmentsRepository {
           this.expenseDescriptionById.get(item.expensesId) ?? 'Sem descricao',
       }))
   }
+
+  async updateUnpaidInstallmentAmountsByExpenseId(
+    expensesId: string,
+    installmentValue: number
+  ): Promise<number> {
+    let updated = 0
+    for (const item of this.items) {
+      if (item.expensesId === expensesId && !item.isPaid) {
+        item.valueInstallmentOfExpense = installmentValue
+        updated += 1
+      }
+    }
+
+    return updated
+  }
 }

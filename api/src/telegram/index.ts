@@ -17,7 +17,10 @@ export function startTelegramBot() {
         text: message.text,
       })
 
-      await provider.sendMessage(message.rawChatId, response.message)
+      const formattedMessage = response.message
+      console.log('📤 Telegram formatted message:', formattedMessage)
+
+      await provider.sendMessage(message.rawChatId, formattedMessage)
     } catch (error) {
       console.error('Erro ao processar mensagem do Telegram:', error)
       await provider.sendMessage(

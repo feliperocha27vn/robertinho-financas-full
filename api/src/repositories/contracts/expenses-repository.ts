@@ -23,6 +23,13 @@ export interface ExpenseSearchItem {
   isFixed: boolean
 }
 
+export interface ExpenseSearchManyItem {
+  id: string
+  description: string
+  amount: number
+  isFixed: boolean
+}
+
 export interface ExpensesRepository {
   create(input: CreateExpenseInput): Promise<ExpenseItem>
   createInstallmentExpense(
@@ -31,6 +38,10 @@ export interface ExpensesRepository {
   findByDescriptionContains(
     nameExpense: string
   ): Promise<ExpenseSearchItem | null>
+  findManyByDescriptionContains(
+    nameExpense: string
+  ): Promise<ExpenseSearchManyItem[]>
+  updateAmountById(id: string, amount: number): Promise<void>
   findAll(): Promise<ExpenseItem[]>
   findFixed(): Promise<ExpenseItem[]>
   findVariableOneOffInRange(start: Date, end: Date): Promise<ExpenseItem[]>

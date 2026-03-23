@@ -41,4 +41,8 @@ export interface InstallmentsRepository {
     endDate: Date
   ): Promise<InstallmentWithExpenseDescription[]>
   findAllUnpaidWithDescription(): Promise<InstallmentWithExpenseDescription[]>
+  updateUnpaidInstallmentAmountsByExpenseId(
+    expensesId: string,
+    installmentValue: number
+  ): Promise<number>
 }

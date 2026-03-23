@@ -237,4 +237,21 @@ export class PrismaInstallmentsRepository implements InstallmentsRepository {
       expenseDescription: item.expense.description,
     }))
   }
+
+  async updateUnpaidInstallmentAmountsByExpenseId(
+    expensesId: string,
+    installmentValue: number
+  ): Promise<number> {
+    const result = await prisma.installments.updateMany({
+      where: {
+        expensesId,
+        isPaid: false,
+      },
+      data: {
+        valueInstallmentOfExpense: new Prisma.Decimal(installmentValue),
+      },
+    })
+
+    return result.count
+  }
 }
