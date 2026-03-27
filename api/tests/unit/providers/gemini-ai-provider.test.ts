@@ -85,10 +85,32 @@ describe('GeminiAiProvider (Function Calling)', () => {
     expect(result.message).toBe('Pronto, despesa registrada.')
     expect(
       result.history.some(item => item.content.includes('[functionCall]'))
-    ).toBe(true)
+    ).toBe(false)
     expect(
       result.history.some(item => item.content.includes('[functionResponse]'))
-    ).toBe(true)
+    ).toBe(false)
+  })
+
+  it('sanitizes leaked function call traces from final text', async () => {
+    const generateContent = vi.fn().mockResolvedValue({
+      text: '[functionCall] delete_all_variable_expenses_current_month({}) [functionResponse] delete_all_variable_expenses_current_month: {"ok":true} ✅ Despesas Excluídas!',
+      functionCalls: [],
+    })
+
+    const provider = new GeminiAiProvider({
+      client: {
+        models: { generateContent },
+      } as any,
+    })
+
+    const result = await provider.generateReply('teste', {
+      currentState: 'idle',
+      pendingData: {},
+      history: [],
+      executeTool: vi.fn(),
+    })
+
+    expect(result.message).toBe('✅ Despesas Excluídas!')
   })
 
   it('injects current date and brazil timezone instruction in system context', async () => {
@@ -126,6 +148,13 @@ describe('GeminiAiProvider (Function Calling)', () => {
     expect(firstContentPart).toContain('accounts_to_pay_by_day_fifteen')
     expect(firstContentPart).toContain('create_recipe')
     expect(firstContentPart).toContain('get_home_data')
+    expect(firstContentPart).toContain('delete_variable_expense_by_name')
+    expect(firstContentPart).toContain(
+      'preview_delete_all_variable_expenses_current_month'
+    )
+    expect(firstContentPart).toContain(
+      'delete_all_variable_expenses_current_month'
+    )
     expect(firstContentPart).toContain('create_calendar_event')
     expect(firstContentPart).toContain('list_calendar_events')
   })

@@ -79,6 +79,10 @@ function buildSystemContextPart(context: AiConversationContext): GenPart {
       'Para contas ate o dia 15 use accounts_to_pay_by_day_fifteen.',
       'Para registrar receita use create_recipe com descricao e valor.',
       'Para painel consolidado da home use get_home_data.',
+      'Para excluir uma despesa variavel por nome no mes atual use delete_variable_expense_by_name.',
+      'Se delete_variable_expense_by_name retornar ambiguous, apresente as opcoes e pergunte qual item excluir.',
+      'Para excluir todas as variaveis do mes atual, sempre chame preview_delete_all_variable_expenses_current_month antes.',
+      'Depois da previa, peca confirmacao explicita do usuario. So execute delete_all_variable_expenses_current_month se o usuario responder sim, confirmar ou ok.',
       `Voce agora gerencia o Google Agenda do usuario. Use create_calendar_event para compromissos e list_calendar_events para checar a agenda. A data/hora exata de agora e: ${new Date().toISOString()} (UTC-3). Nunca tente adivinhar compromissos, sempre chame a funcao list primeiro.`,
       '',
       'DIRETRIZES DE FORMATACAO VISUAL (UI/UX) - OBRIGATORIAS',
@@ -186,15 +190,6 @@ export class GeminiAiProvider implements AiProvider {
             },
           ],
         })
-
-        nextHistory.push({
-          role: 'assistant',
-          content: `[functionCall] ${call.name}(${JSON.stringify(call.args)})`,
-        })
-        nextHistory.push({
-          role: 'assistant',
-          content: `[functionResponse] ${call.name}: ${JSON.stringify(toolResult)}`,
-        })
       }
 
       response = await this.client.models.generateContent({
@@ -206,7 +201,11 @@ export class GeminiAiProvider implements AiProvider {
       })
     }
 
-    const message = response.text?.trim() || 'Nao consegui responder agora.'
+    const rawMessage = response.text?.trim() || 'Nao consegui responder agora.'
+    const message = rawMessage
+      .replace(/\[functionCall\][\s\S]*?(?=✅|📊|💰|$)/g, '')
+      .replace(/\[functionResponse\][\s\S]*?(?=✅|📊|💰|$)/g, '')
+      .trim()
     nextHistory.push({ role: 'assistant', content: message })
 
     return {
