@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { endOfMonth, startOfMonth } from 'date-fns'
 import type { ExpenseItem } from '../../domain/finance'
 import type {
   CreateExpenseInput,
@@ -133,6 +134,23 @@ export class InMemoryExpensesRepository implements ExpensesRepository {
     )
   }
 
+  async findVariableOneOffCurrentMonth(): Promise<ExpenseItem[]> {
+    return this.findVariableOneOffInRange(
+      startOfMonth(new Date()),
+      endOfMonth(new Date())
+    )
+  }
+
+  async findVariableOneOffCurrentMonthByDescriptionContains(
+    nameExpense: string
+  ): Promise<ExpenseItem[]> {
+    const items = await this.findVariableOneOffCurrentMonth()
+    const normalized = nameExpense.toLowerCase()
+    return items.filter(item =>
+      item.description.toLowerCase().includes(normalized)
+    )
+  }
+
   async findAllFixedForStatus(): Promise<ExpenseSearchItem[]> {
     return this.items
       .filter(item => item.isFixed)
@@ -142,6 +160,17 @@ export class InMemoryExpensesRepository implements ExpensesRepository {
         amount: item.amount,
         isFixed: true,
       }))
+  }
+
+  async deleteById(id: string): Promise<void> {
+    this.items = this.items.filter(item => item.id !== id)
+  }
+
+  async deleteManyByIds(ids: string[]): Promise<number> {
+    const idsSet = new Set(ids)
+    const before = this.items.length
+    this.items = this.items.filter(item => !idsSet.has(item.id))
+    return before - this.items.length
   }
 
   async sumAll(): Promise<number> {

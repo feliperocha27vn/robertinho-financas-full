@@ -8,6 +8,8 @@ import type { AccountsPayableNextMonthUseCase } from '../expenses/accounts-payab
 import type { AccountsToPayByDayFifteenUseCase } from '../expenses/accounts-to-pay-by-day-fifteen-use-case'
 import type { CreateExpenseInstallmentUseCase } from '../expenses/create-expense-installment-use-case'
 import type { CreateExpenseUseCase } from '../expenses/create-expense-use-case'
+import type { DeleteAllVariableExpensesCurrentMonthUseCase } from '../expenses/delete-all-variable-expenses-current-month-use-case'
+import type { DeleteVariableExpenseByNameUseCase } from '../expenses/delete-variable-expense-by-name-use-case'
 import type { GetAllRemainingInstallmentsUseCase } from '../expenses/get-all-remaining-installments-use-case'
 import type { GetRemainingInstallmentsUseCase } from '../expenses/get-remaining-installments-use-case'
 import type { GetSumExpensesFixedUseCase } from '../expenses/get-sum-expenses-fixed-use-case'
@@ -47,6 +49,8 @@ export class ProcessMessageUseCase {
     private readonly unpayExpenseUseCase: UnpayExpenseUseCase,
     private readonly accountsToPayByDayFifteenUseCase: AccountsToPayByDayFifteenUseCase,
     private readonly getHomeDataUseCase: GetHomeDataUseCase,
+    private readonly deleteVariableExpenseByNameUseCase: DeleteVariableExpenseByNameUseCase,
+    private readonly deleteAllVariableExpensesCurrentMonthUseCase: DeleteAllVariableExpensesCurrentMonthUseCase,
     private readonly getSumExpensesOfMonthVariablesUseCase: GetSumExpensesOfMonthVariablesUseCase,
     private readonly accountsPayableNextMonthUseCase: AccountsPayableNextMonthUseCase,
     private readonly payExpensesByNamesUseCase: PayExpensesByNamesUseCase,
@@ -204,6 +208,29 @@ export class ProcessMessageUseCase {
 
       case 'get_home_data': {
         const result = await this.getHomeDataUseCase.execute()
+        return { ok: true, result }
+      }
+
+      case 'delete_variable_expense_by_name': {
+        const result = await this.deleteVariableExpenseByNameUseCase.execute({
+          nameExpense: String(call.args.nameExpense ?? ''),
+          selectedExpenseId:
+            call.args.selectedExpenseId !== undefined
+              ? String(call.args.selectedExpenseId)
+              : undefined,
+        })
+        return { ok: true, result }
+      }
+
+      case 'preview_delete_all_variable_expenses_current_month': {
+        const result =
+          await this.deleteAllVariableExpensesCurrentMonthUseCase.preview()
+        return { ok: true, result }
+      }
+
+      case 'delete_all_variable_expenses_current_month': {
+        const result =
+          await this.deleteAllVariableExpensesCurrentMonthUseCase.execute()
         return { ok: true, result }
       }
 

@@ -24,6 +24,8 @@ export function makeProcessMessageUseCase() {
     useCases.unpayExpense,
     useCases.accountsToPayByDayFifteen,
     useCases.getHomeData,
+    useCases.deleteVariableExpenseByName,
+    useCases.deleteAllVariableExpensesCurrentMonth,
     useCases.getSumExpensesOfMonthVariables,
     useCases.accountsPayableNextMonth,
     useCases.payExpensesByNames,

@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client'
+import { endOfMonth, startOfMonth } from 'date-fns'
 import type { ExpenseItem } from '../../domain/finance'
 import { prisma } from '../../lib/prisma'
 import type {
@@ -187,6 +188,43 @@ export class PrismaExpensesRepository implements ExpensesRepository {
     }))
   }
 
+  async findVariableOneOffCurrentMonth(): Promise<ExpenseItem[]> {
+    return this.findVariableOneOffInRange(
+      startOfMonth(new Date()),
+      endOfMonth(new Date())
+    )
+  }
+
+  async findVariableOneOffCurrentMonthByDescriptionContains(
+    nameExpense: string
+  ): Promise<ExpenseItem[]> {
+    const items = await prisma.expenses.findMany({
+      where: {
+        createdAt: {
+          gte: startOfMonth(new Date()),
+          lte: endOfMonth(new Date()),
+        },
+        isFixed: false,
+        numberOfInstallments: null,
+        description: {
+          contains: nameExpense,
+          mode: 'insensitive',
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return items.map(item => ({
+      id: item.id,
+      description: item.description,
+      amount: Number(item.amount),
+      category: item.category,
+      isFixed: item.isFixed,
+      numberOfInstallments: item.numberOfInstallments,
+      createdAt: item.createdAt,
+    }))
+  }
+
   async findAllFixedForStatus(): Promise<ExpenseSearchItem[]> {
     const items = await prisma.expenses.findMany({
       where: { isFixed: true },
@@ -199,6 +237,22 @@ export class PrismaExpensesRepository implements ExpensesRepository {
       amount: Number(item.amount),
       isFixed: item.isFixed,
     }))
+  }
+
+  async deleteById(id: string): Promise<void> {
+    await prisma.expenses.delete({ where: { id } })
+  }
+
+  async deleteManyByIds(ids: string[]): Promise<number> {
+    if (ids.length === 0) {
+      return 0
+    }
+
+    const result = await prisma.expenses.deleteMany({
+      where: { id: { in: ids } },
+    })
+
+    return result.count
   }
 
   async sumAll(): Promise<number> {

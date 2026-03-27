@@ -26,6 +26,11 @@ function makeSut(overrides?: {
     unpayExpense: { execute: vi.fn() },
     accountsToPayByDayFifteen: { execute: vi.fn() },
     getHomeData: { execute: vi.fn() },
+    deleteVariableExpenseByName: { execute: vi.fn() },
+    deleteAllVariableExpensesCurrentMonth: {
+      preview: vi.fn(),
+      execute: vi.fn(),
+    },
     getSumExpensesOfMonthVariables: { execute: vi.fn() },
     accountsPayableNextMonth: { execute: vi.fn() },
     payExpensesByNames: { execute: vi.fn() },
@@ -60,6 +65,8 @@ function makeSut(overrides?: {
     useCases.unpayExpense as any,
     useCases.accountsToPayByDayFifteen as any,
     useCases.getHomeData as any,
+    useCases.deleteVariableExpenseByName as any,
+    useCases.deleteAllVariableExpensesCurrentMonth as any,
     useCases.getSumExpensesOfMonthVariables as any,
     useCases.accountsPayableNextMonth as any,
     useCases.payExpensesByNames as any,
@@ -187,6 +194,18 @@ describe('ProcessMessageUseCase (all tools wired)', () => {
           args: { nameExpense: 'energia', amount: 120 },
         })
         await context.executeTool({ name: 'get_home_data', args: {} })
+        await context.executeTool({
+          name: 'delete_variable_expense_by_name',
+          args: { nameExpense: 'lanche', selectedExpenseId: 'x-1' },
+        })
+        await context.executeTool({
+          name: 'preview_delete_all_variable_expenses_current_month',
+          args: {},
+        })
+        await context.executeTool({
+          name: 'delete_all_variable_expenses_current_month',
+          args: {},
+        })
 
         return {
           message: 'ok',
@@ -230,6 +249,16 @@ describe('ProcessMessageUseCase (all tools wired)', () => {
       amount: 120,
     })
     expect(useCases.getHomeData.execute).toHaveBeenCalled()
+    expect(useCases.deleteVariableExpenseByName.execute).toHaveBeenCalledWith({
+      nameExpense: 'lanche',
+      selectedExpenseId: 'x-1',
+    })
+    expect(
+      useCases.deleteAllVariableExpensesCurrentMonth.preview
+    ).toHaveBeenCalled()
+    expect(
+      useCases.deleteAllVariableExpensesCurrentMonth.execute
+    ).toHaveBeenCalled()
   })
 
   it('wires create_calendar_event and list_calendar_events tools', async () => {

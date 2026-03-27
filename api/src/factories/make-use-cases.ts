@@ -2,6 +2,8 @@ import { AccountsPayableNextMonthUseCase } from '../use-cases/expenses/accounts-
 import { AccountsToPayByDayFifteenUseCase } from '../use-cases/expenses/accounts-to-pay-by-day-fifteen-use-case'
 import { CreateExpenseInstallmentUseCase } from '../use-cases/expenses/create-expense-installment-use-case'
 import { CreateExpenseUseCase } from '../use-cases/expenses/create-expense-use-case'
+import { DeleteAllVariableExpensesCurrentMonthUseCase } from '../use-cases/expenses/delete-all-variable-expenses-current-month-use-case'
+import { DeleteVariableExpenseByNameUseCase } from '../use-cases/expenses/delete-variable-expense-by-name-use-case'
 import { GetAllRemainingInstallmentsUseCase } from '../use-cases/expenses/get-all-remaining-installments-use-case'
 import { GetRemainingInstallmentsUseCase } from '../use-cases/expenses/get-remaining-installments-use-case'
 import { GetSumExpensesFixedUseCase } from '../use-cases/expenses/get-sum-expenses-fixed-use-case'
@@ -75,4 +77,9 @@ export const useCases = {
     repositories.installments,
     repositories.recipes
   ),
+  deleteVariableExpenseByName: new DeleteVariableExpenseByNameUseCase(
+    repositories.expenses
+  ),
+  deleteAllVariableExpensesCurrentMonth:
+    new DeleteAllVariableExpensesCurrentMonthUseCase(repositories.expenses),
 }

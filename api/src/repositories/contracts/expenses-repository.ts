@@ -45,7 +45,13 @@ export interface ExpensesRepository {
   findAll(): Promise<ExpenseItem[]>
   findFixed(): Promise<ExpenseItem[]>
   findVariableOneOffInRange(start: Date, end: Date): Promise<ExpenseItem[]>
+  findVariableOneOffCurrentMonth(): Promise<ExpenseItem[]>
+  findVariableOneOffCurrentMonthByDescriptionContains(
+    nameExpense: string
+  ): Promise<ExpenseItem[]>
   findAllFixedForStatus(): Promise<ExpenseSearchItem[]>
+  deleteById(id: string): Promise<void>
+  deleteManyByIds(ids: string[]): Promise<number>
   sumAll(): Promise<number>
   sumFixed(): Promise<number>
   sumVariableOneOffInRange(start: Date, end: Date): Promise<number>

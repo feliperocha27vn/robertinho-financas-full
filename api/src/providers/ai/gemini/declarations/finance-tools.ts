@@ -151,6 +151,42 @@ export const declarationGetHomeData = {
   },
 }
 
+export const declarationDeleteVariableExpenseByName = {
+  name: 'delete_variable_expense_by_name',
+  description:
+    'Exclui despesa variavel avulsa do mes atual por nome, com suporte a desambiguacao por ID.',
+  parametersJsonSchema: {
+    type: Type.OBJECT,
+    properties: {
+      nameExpense: { type: Type.STRING },
+      selectedExpenseId: { type: Type.STRING },
+    },
+    required: ['nameExpense'],
+  },
+}
+
+export const declarationPreviewDeleteAllVariableExpensesCurrentMonth = {
+  name: 'preview_delete_all_variable_expenses_current_month',
+  description:
+    'Retorna previa com quantidade e valor total das despesas variaveis avulsas do mes atual.',
+  parametersJsonSchema: {
+    type: Type.OBJECT,
+    properties: {},
+    required: [],
+  },
+}
+
+export const declarationDeleteAllVariableExpensesCurrentMonth = {
+  name: 'delete_all_variable_expenses_current_month',
+  description:
+    'Exclui todas as despesas variaveis avulsas do mes atual apos confirmacao do usuario.',
+  parametersJsonSchema: {
+    type: Type.OBJECT,
+    properties: {},
+    required: [],
+  },
+}
+
 export const financeFunctionDeclarations = [
   {
     name: 'create_expense',
@@ -255,6 +291,9 @@ export const financeFunctionDeclarations = [
   declarationAccountsToPayByDayFifteen,
   declarationCreateRecipe,
   declarationGetHomeData,
+  declarationDeleteVariableExpenseByName,
+  declarationPreviewDeleteAllVariableExpensesCurrentMonth,
+  declarationDeleteAllVariableExpensesCurrentMonth,
   declarationCalendar,
   declarationListCalendarEvents,
 ]
