@@ -12,6 +12,7 @@
 - Testes unitarios devem instanciar use cases com repositorios em memoria.
 - Mockar providers (IA/mensageria) com objetos simples contendo `execute`/metodos assinados.
 - Cobrir cenarios de sucesso, falha de regra de negocio e entradas incompletas.
+- TDD e obrigatorio em toda evolucao de use case: teste falhando primeiro, implementacao minima, teste passando e refatoracao.
 
 ## Fluxos de Update
 
