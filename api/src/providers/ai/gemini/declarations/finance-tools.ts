@@ -187,6 +187,66 @@ export const declarationDeleteAllVariableExpensesCurrentMonth = {
   },
 }
 
+export const declarationGetCurrentDiet = {
+  name: 'get_current_diet',
+  description:
+    'Retorna a dieta ativa do usuario com refeicoes, opcoes e alimentos.',
+  parametersJsonSchema: {
+    type: Type.OBJECT,
+    properties: {},
+    required: [],
+  },
+}
+
+export const declarationSearchFoodNutrition = {
+  name: 'search_food_nutrition',
+  description: 'Busca calorias e macros aproximados de um alimento por nome.',
+  parametersJsonSchema: {
+    type: Type.OBJECT,
+    properties: {
+      query: { type: Type.STRING },
+      amount: { type: Type.NUMBER },
+      unit: { type: Type.STRING },
+    },
+    required: ['query'],
+  },
+}
+
+export const declarationSuggestFoodSwap = {
+  name: 'suggest_food_swap',
+  description:
+    'Sugere substituicoes equivalentes para um alimento da dieta atual.',
+  parametersJsonSchema: {
+    type: Type.OBJECT,
+    properties: {
+      mealName: { type: Type.STRING },
+      optionLabel: { type: Type.STRING },
+      originalFoodName: { type: Type.STRING },
+    },
+    required: ['originalFoodName'],
+  },
+}
+
+export const declarationUpdateDietMealOption = {
+  name: 'update_diet_meal_option',
+  description:
+    'Atualiza um alimento de uma opcao da refeicao da dieta ativa apos confirmacao do usuario.',
+  parametersJsonSchema: {
+    type: Type.OBJECT,
+    properties: {
+      mealName: { type: Type.STRING },
+      optionLabel: { type: Type.STRING },
+      originalFoodName: { type: Type.STRING },
+      replacementName: { type: Type.STRING },
+      replacementCalories: { type: Type.NUMBER },
+      replacementUnit: { type: Type.STRING },
+      replacementAmount: { type: Type.NUMBER },
+      replacementFoodGroup: { type: Type.STRING },
+    },
+    required: ['mealName', 'optionLabel', 'originalFoodName', 'replacementName'],
+  },
+}
+
 export const financeFunctionDeclarations = [
   {
     name: 'create_expense',
@@ -294,6 +354,10 @@ export const financeFunctionDeclarations = [
   declarationDeleteVariableExpenseByName,
   declarationPreviewDeleteAllVariableExpensesCurrentMonth,
   declarationDeleteAllVariableExpensesCurrentMonth,
+  declarationGetCurrentDiet,
+  declarationSearchFoodNutrition,
+  declarationSuggestFoodSwap,
+  declarationUpdateDietMealOption,
   declarationCalendar,
   declarationListCalendarEvents,
 ]

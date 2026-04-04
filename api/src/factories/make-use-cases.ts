@@ -18,7 +18,18 @@ import { UnpayExpenseUseCase } from '../use-cases/expenses/unpay-expense-use-cas
 import { UpdateExpenseAmountUseCase } from '../use-cases/expenses/update-expense-amount-use-case'
 import { CreateRecipeUseCase } from '../use-cases/recipes/create-recipe-use-case'
 import { GetHomeDataUseCase } from '../use-cases/summary/get-home-data-use-case'
+import { CompositeNutritionProvider } from '../providers/nutrition/composite-nutrition-provider'
+import { StaticBrazilianFoodsProvider } from '../providers/nutrition/static-brazilian-foods-provider'
+import { GetCurrentDietUseCase } from '../use-cases/diet/get-current-diet-use-case'
+import { ImportCurrentDietUseCase } from '../use-cases/diet/import-current-diet-use-case'
+import { SearchFoodNutritionUseCase } from '../use-cases/diet/search-food-nutrition-use-case'
+import { SuggestFoodSwapUseCase } from '../use-cases/diet/suggest-food-swap-use-case'
+import { UpdateDietMealOptionUseCase } from '../use-cases/diet/update-diet-meal-option-use-case'
 import { repositories } from './make-repositories'
+
+const nutritionProvider = new CompositeNutritionProvider([
+  new StaticBrazilianFoodsProvider(),
+])
 
 export const useCases = {
   createExpense: new CreateExpenseUseCase(repositories.expenses),
@@ -82,4 +93,12 @@ export const useCases = {
   ),
   deleteAllVariableExpensesCurrentMonth:
     new DeleteAllVariableExpensesCurrentMonthUseCase(repositories.expenses),
+  importCurrentDiet: new ImportCurrentDietUseCase(repositories.diet),
+  getCurrentDiet: new GetCurrentDietUseCase(repositories.diet),
+  searchFoodNutrition: new SearchFoodNutritionUseCase(nutritionProvider),
+  suggestFoodSwap: new SuggestFoodSwapUseCase(
+    repositories.diet,
+    new SearchFoodNutritionUseCase(nutritionProvider)
+  ),
+  updateDietMealOption: new UpdateDietMealOptionUseCase(repositories.diet),
 }
