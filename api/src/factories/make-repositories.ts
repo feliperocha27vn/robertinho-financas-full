@@ -3,6 +3,7 @@ import { PrismaExpensesRepository } from '../repositories/prisma/prisma-expenses
 import { PrismaInstallmentsRepository } from '../repositories/prisma/prisma-installments-repository'
 import { PrismaRecipesRepository } from '../repositories/prisma/prisma-recipes-repository'
 import { PrismaSessionRepository } from '../repositories/prisma/prisma-session-repository'
+import { InMemoryDietRepository } from '../repositories/in-memory/in-memory-diet-repository'
 
 export const repositories = {
   expenses: new PrismaExpensesRepository(),
@@ -10,4 +11,5 @@ export const repositories = {
   recipes: new PrismaRecipesRepository(),
   session: new PrismaSessionRepository(),
   calendar: new GoogleCalendarProvider(),
+  diet: new InMemoryDietRepository(),
 }
