@@ -11,7 +11,9 @@ const { botMock, handlers, processMessageUseCaseMock } = vi.hoisted(() => {
   )
 
   const sendMessage = vi.fn().mockResolvedValue(undefined)
-  const execute = vi.fn().mockResolvedValue({ message: 'resposta telegram' })
+    const execute = vi
+      .fn()
+      .mockResolvedValue({ message: '<ul><li>resposta telegram</li></ul>' })
 
   return {
     handlers: map,
@@ -45,7 +47,7 @@ describe('startTelegramBot', () => {
       sessionId: 'telegram-123',
       text: 'oi',
     })
-    expect(botMock.sendMessage).toHaveBeenCalledWith(999, 'resposta telegram', {
+    expect(botMock.sendMessage).toHaveBeenCalledWith(999, '• resposta telegram', {
       parse_mode: 'HTML',
     })
   })

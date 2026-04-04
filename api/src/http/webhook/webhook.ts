@@ -3,6 +3,7 @@ import z from 'zod'
 import { getContainer } from '../../container'
 import { env } from '../../env'
 import { telegramBot } from '../../lib/telegram'
+import { sanitizeTelegramHtml } from '../../providers/messaging/telegram-html'
 
 // Schema simplificado para o App Mobile
 const chatPayloadSchema = z.object({
@@ -108,9 +109,13 @@ export const webhookRoute: FastifyPluginAsyncZod = async app => {
           text: message.text,
         })
 
-        await telegramBot.sendMessage(Number(chatId), response.message, {
-          parse_mode: 'HTML',
-        })
+        await telegramBot.sendMessage(
+          Number(chatId),
+          sanitizeTelegramHtml(response.message),
+          {
+            parse_mode: 'HTML',
+          }
+        )
 
         return reply.status(200).send({ ok: true })
       } catch (error) {

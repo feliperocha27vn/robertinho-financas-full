@@ -41,9 +41,9 @@ describe('TelegramProvider', () => {
     const botMock = makeBotMock()
     const provider = new TelegramProvider(botMock as any)
 
-    await provider.sendMessage('999', 'teste')
+    await provider.sendMessage('999', '<ul><li>teste</li></ul>')
 
-    expect(botMock.sendMessage).toHaveBeenCalledWith(999, 'teste', {
+    expect(botMock.sendMessage).toHaveBeenCalledWith(999, '• teste', {
       parse_mode: 'HTML',
     })
   })
