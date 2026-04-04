@@ -161,5 +161,7 @@ describe('GeminiAiProvider (Function Calling)', () => {
     expect(firstContentPart).toContain('search_food_nutrition')
     expect(firstContentPart).toContain('suggest_food_swap')
     expect(firstContentPart).toContain('update_diet_meal_option')
+    expect(firstContentPart).toContain('Sempre priorize o catalogo interno de alimentos')
+    expect(firstContentPart).toContain('Nao dependa de pesquisa web para trocas comuns')
   })
 })
