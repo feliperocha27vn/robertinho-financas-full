@@ -1,6 +1,6 @@
 import type TelegramBot from 'node-telegram-bot-api'
 import type { MessagingProvider } from './messaging-provider'
-import { sanitizeTelegramHtml } from './telegram-html'
+import { sanitizeTelegramHtml, stripAllHtmlTags } from './telegram-html'
 
 export class TelegramProvider implements MessagingProvider {
   constructor(private readonly bot: TelegramBot) {}
@@ -33,8 +33,22 @@ export class TelegramProvider implements MessagingProvider {
   }
 
   async sendMessage(targetId: string, message: string): Promise<void> {
-    await this.bot.sendMessage(Number(targetId), sanitizeTelegramHtml(message), {
-      parse_mode: 'HTML',
-    })
+    const sanitized = sanitizeTelegramHtml(message)
+
+    try {
+      await this.bot.sendMessage(Number(targetId), sanitized, {
+        parse_mode: 'HTML',
+      })
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes("can't parse entities")
+      ) {
+        await this.bot.sendMessage(Number(targetId), stripAllHtmlTags(sanitized))
+        return
+      }
+
+      throw error
+    }
   }
 }

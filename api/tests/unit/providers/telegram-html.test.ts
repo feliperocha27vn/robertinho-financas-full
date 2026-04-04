@@ -19,4 +19,14 @@ describe('sanitizeTelegramHtml', () => {
     expect(result).not.toContain('<ul>')
     expect(result).not.toContain('<li>')
   })
+
+  it('removes unsupported heading tags while preserving text', () => {
+    const input = '<h3><b>Titulo</b></h3>\n<p>Conteudo</p>'
+
+    const result = sanitizeTelegramHtml(input)
+
+    expect(result).toBe('<b>Titulo</b>\n\nConteudo')
+    expect(result).not.toContain('<h3>')
+    expect(result).not.toContain('<p>')
+  })
 })

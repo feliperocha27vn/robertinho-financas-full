@@ -47,4 +47,21 @@ describe('TelegramProvider', () => {
       parse_mode: 'HTML',
     })
   })
+
+  it('falls back to plain text when telegram rejects HTML entities', async () => {
+    const botMock = makeBotMock()
+    botMock.sendMessage = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("ETELEGRAM: can't parse entities"))
+      .mockResolvedValueOnce(undefined)
+
+    const provider = new TelegramProvider(botMock as any)
+
+    await provider.sendMessage('999', '<h3><b>Titulo</b></h3><p>Corpo</p>')
+
+    expect(botMock.sendMessage).toHaveBeenNthCalledWith(1, 999, '<b>Titulo</b>\nCorpo', {
+      parse_mode: 'HTML',
+    })
+    expect(botMock.sendMessage).toHaveBeenNthCalledWith(2, 999, 'Titulo\nCorpo')
+  })
 })
