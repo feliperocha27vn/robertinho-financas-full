@@ -6,6 +6,7 @@ interface Input {
   mealName?: string
   optionLabel?: string
   originalFoodName: string
+  replacementFoodName?: string
 }
 
 interface SuggestionItem {
@@ -30,6 +31,45 @@ export class SuggestFoodSwapUseCase {
     private readonly foodCatalogRepository: FoodCatalogRepository,
     private readonly resolveDietFoodUseCase: ResolveDietFoodUseCase
   ) {}
+
+  private normalize(text: string): string {
+    return text
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+  }
+
+  private distance(a: string, b: string): number {
+    if (a === b) return 0
+    if (!a.length) return b.length
+    if (!b.length) return a.length
+
+    const matrix = Array.from({ length: a.length + 1 }, () =>
+      Array.from({ length: b.length + 1 }, () => 0)
+    )
+
+    for (let i = 0; i <= a.length; i++) matrix[i][0] = i
+    for (let j = 0; j <= b.length; j++) matrix[0][j] = j
+
+    for (let i = 1; i <= a.length; i++) {
+      for (let j = 1; j <= b.length; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j - 1] + cost
+        )
+      }
+    }
+
+    return matrix[a.length][b.length]
+  }
+
+  private isTypoMatch(input: string, candidate: string): boolean {
+    const maxDistance = input.length <= 4 ? 1 : 2
+    return this.distance(input, candidate) <= maxDistance
+  }
 
   async execute(input: Input): Promise<{
     originalFood: {
@@ -63,8 +103,29 @@ export class SuggestFoodSwapUseCase {
       resolved.dietItem.foodGroup
     )
 
-    const suggestions = candidates
-      .filter(item => item.id !== resolved.catalogItemId)
+    const candidateItems = candidates.filter(item => item.id !== resolved.catalogItemId)
+
+    let suggestedItems = candidateItems
+    const replacementFoodName = input.replacementFoodName?.trim()
+    if (replacementFoodName) {
+      const exact = await this.foodCatalogRepository.findByAlias(replacementFoodName)
+      if (exact && exact.foodGroup === resolved.dietItem.foodGroup) {
+        suggestedItems = candidateItems.filter(item => item.id === exact.id)
+      } else {
+        const normalizedReplacement = this.normalize(replacementFoodName)
+        const fuzzy = candidateItems.find(item => {
+          const names = [item.canonicalName, ...item.aliases].map(name =>
+            this.normalize(name)
+          )
+
+          return names.some(name => this.isTypoMatch(normalizedReplacement, name))
+        })
+
+        suggestedItems = fuzzy ? [fuzzy] : []
+      }
+    }
+
+    const suggestions = suggestedItems
       .map(item => ({
         displayName: item.canonicalName,
         normalizedName: item.normalizedName,

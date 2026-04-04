@@ -331,6 +331,7 @@ describe('ProcessMessageUseCase (all tools wired)', () => {
             mealName: 'Refeicao 1',
             optionLabel: 'Opcao 1',
             originalFoodName: 'banana media',
+            replacementFoodName: 'maça',
           },
         })
 
@@ -375,6 +376,7 @@ describe('ProcessMessageUseCase (all tools wired)', () => {
       mealName: 'Refeicao 1',
       optionLabel: 'Opcao 1',
       originalFoodName: 'banana media',
+      replacementFoodName: 'maça',
     })
 
     expect(useCases.updateDietMealOption.execute).toHaveBeenCalledWith({

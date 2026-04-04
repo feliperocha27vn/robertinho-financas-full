@@ -285,6 +285,10 @@ export class ProcessMessageUseCase {
               ? String(call.args.optionLabel)
               : undefined,
           originalFoodName: String(call.args.originalFoodName ?? ''),
+          replacementFoodName:
+            call.args.replacementFoodName !== undefined
+              ? String(call.args.replacementFoodName)
+              : undefined,
         })
 
         return { ok: true, result }

@@ -222,6 +222,7 @@ export const declarationSuggestFoodSwap = {
       mealName: { type: Type.STRING },
       optionLabel: { type: Type.STRING },
       originalFoodName: { type: Type.STRING },
+      replacementFoodName: { type: Type.STRING },
     },
     required: ['originalFoodName'],
   },

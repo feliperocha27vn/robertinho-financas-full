@@ -164,4 +164,148 @@ describe('SuggestFoodSwapUseCase', () => {
       result.suggestions.every(item => Math.abs(item.calorieDelta) <= 30)
     ).toBe(true)
   })
+
+  it('returns explicit replacement candidate even with minor typo', async () => {
+    const dietRepository = {
+      getActiveByUserId: async () => ({
+        id: 'plan-1',
+        userId: 'user-1',
+        title: 'Dieta',
+        targetCalories: 2200,
+        meals: [
+          {
+            id: 'meal-1',
+            name: 'Refeicao 1',
+            timeLabel: '07:00',
+            displayOrder: 1,
+            options: [
+              {
+                id: 'opt-1',
+                label: 'Opcao 1',
+                items: [
+                  {
+                    id: 'item-1',
+                    foodCatalogId: 'banana-id',
+                    name: 'banana media',
+                    normalizedName: 'banana media',
+                    amount: 1,
+                    unit: 'unidade',
+                    estimatedCalories: 90,
+                    foodGroup: 'FRUIT',
+                    notes: null,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    }
+
+    const foodCatalogRepository = new InMemoryFoodCatalogRepository()
+    await foodCatalogRepository.upsertMany([
+      {
+        canonicalName: 'banana prata',
+        foodGroup: 'FRUIT',
+        baseAmount: 100,
+        baseUnit: 'g',
+        calories: 98,
+        protein: 1.3,
+        carbs: 26,
+        fat: 0.1,
+        fiber: 2,
+        sourceType: 'CATALOG',
+        sourceRef: 'seed:v1',
+        aliases: ['banana', 'banana media'],
+      },
+      {
+        canonicalName: 'maca',
+        foodGroup: 'FRUIT',
+        baseAmount: 100,
+        baseUnit: 'g',
+        calories: 84,
+        protein: 0.3,
+        carbs: 22,
+        fat: 0.2,
+        fiber: 2,
+        sourceType: 'CATALOG',
+        sourceRef: 'seed:v1',
+        aliases: ['maca', 'maça'],
+      },
+      {
+        canonicalName: 'pera',
+        foodGroup: 'FRUIT',
+        baseAmount: 100,
+        baseUnit: 'g',
+        calories: 96,
+        protein: 0.4,
+        carbs: 26,
+        fat: 0.2,
+        fiber: 3,
+        sourceType: 'CATALOG',
+        sourceRef: 'seed:v1',
+        aliases: ['pera'],
+      },
+    ])
+
+    const banana = await foodCatalogRepository.findByAlias('banana')
+    if (!banana) {
+      throw new Error('banana catalog item must exist in test setup')
+    }
+
+    ;(dietRepository.getActiveByUserId as any) = async () => ({
+      id: 'plan-1',
+      userId: 'user-1',
+      title: 'Dieta',
+      targetCalories: 2200,
+      meals: [
+        {
+          id: 'meal-1',
+          name: 'Refeicao 1',
+          timeLabel: '07:00',
+          displayOrder: 1,
+          options: [
+            {
+              id: 'opt-1',
+              label: 'Opcao 1',
+              items: [
+                {
+                  id: 'item-1',
+                  foodCatalogId: banana.id,
+                  name: 'banana media',
+                  normalizedName: 'banana media',
+                  amount: 1,
+                  unit: 'unidade',
+                  estimatedCalories: 90,
+                  foodGroup: 'FRUIT',
+                  notes: null,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    })
+
+    const resolveDietFoodUseCase = new ResolveDietFoodUseCase(
+      dietRepository as any,
+      foodCatalogRepository
+    )
+
+    const sut = new SuggestFoodSwapUseCase(
+      foodCatalogRepository,
+      resolveDietFoodUseCase
+    )
+
+    const result = await sut.execute({
+      userId: 'user-1',
+      mealName: 'Refeicao 1',
+      optionLabel: 'Opcao 1',
+      originalFoodName: 'banana',
+      replacementFoodName: 'maã',
+    })
+
+    expect(result.suggestions.length).toBe(1)
+    expect(result.suggestions[0]?.displayName).toBe('maca')
+  })
 })

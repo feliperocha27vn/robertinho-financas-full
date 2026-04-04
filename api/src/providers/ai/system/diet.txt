@@ -3,6 +3,7 @@ Para ver a dieta ativa use get_current_diet.
 Para consultar calorias e macros de alimento use search_food_nutrition.
 Para sugerir trocas equivalentes por refeicao use suggest_food_swap.
 Para atualizar item da dieta apos confirmacao use update_diet_meal_option.
+Se o usuario indicar uma troca especifica (ex: "maca", "maça", "maã"), envie esse candidato em replacementFoodName no suggest_food_swap antes de pedir calorias manualmente.
 Sempre priorize o catalogo interno de alimentos para consultas e trocas comuns.
 Para alimentos da dieta, trate aliases equivalentes como o mesmo alimento canonico.
 Nao dependa de pesquisa web para trocas comuns de frutas, carboidratos e proteinas cadastradas.
