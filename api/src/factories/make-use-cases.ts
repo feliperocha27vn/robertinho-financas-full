@@ -22,7 +22,9 @@ import { CompositeNutritionProvider } from '../providers/nutrition/composite-nut
 import { StaticBrazilianFoodsProvider } from '../providers/nutrition/static-brazilian-foods-provider'
 import { GetCurrentDietUseCase } from '../use-cases/diet/get-current-diet-use-case'
 import { ImportCurrentDietUseCase } from '../use-cases/diet/import-current-diet-use-case'
+import { ResolveDietFoodUseCase } from '../use-cases/diet/resolve-diet-food-use-case'
 import { SearchFoodNutritionUseCase } from '../use-cases/diet/search-food-nutrition-use-case'
+import { SeedFoodCatalogUseCase } from '../use-cases/diet/seed-food-catalog-use-case'
 import { SuggestFoodSwapUseCase } from '../use-cases/diet/suggest-food-swap-use-case'
 import { UpdateDietMealOptionUseCase } from '../use-cases/diet/update-diet-meal-option-use-case'
 import { repositories } from './make-repositories'
@@ -30,6 +32,11 @@ import { repositories } from './make-repositories'
 const nutritionProvider = new CompositeNutritionProvider([
   new StaticBrazilianFoodsProvider(),
 ])
+
+const resolveDietFoodUseCase = new ResolveDietFoodUseCase(
+  repositories.diet,
+  repositories.foodCatalog
+)
 
 export const useCases = {
   createExpense: new CreateExpenseUseCase(repositories.expenses),
@@ -94,11 +101,15 @@ export const useCases = {
   deleteAllVariableExpensesCurrentMonth:
     new DeleteAllVariableExpensesCurrentMonthUseCase(repositories.expenses),
   importCurrentDiet: new ImportCurrentDietUseCase(repositories.diet),
+  seedFoodCatalog: new SeedFoodCatalogUseCase(repositories.foodCatalog),
   getCurrentDiet: new GetCurrentDietUseCase(repositories.diet),
-  searchFoodNutrition: new SearchFoodNutritionUseCase(nutritionProvider),
+  searchFoodNutrition: new SearchFoodNutritionUseCase(
+    repositories.foodCatalog,
+    nutritionProvider
+  ),
   suggestFoodSwap: new SuggestFoodSwapUseCase(
-    repositories.diet,
-    new SearchFoodNutritionUseCase(nutritionProvider)
+    repositories.foodCatalog,
+    resolveDietFoodUseCase
   ),
   updateDietMealOption: new UpdateDietMealOptionUseCase(repositories.diet),
 }

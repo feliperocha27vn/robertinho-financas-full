@@ -9,6 +9,7 @@ export type DietFoodGroup =
 
 export interface DietFoodItem {
   id: string
+  foodCatalogId: string | null
   name: string
   normalizedName: string
   amount: number | null
@@ -50,6 +51,7 @@ export interface ReplaceDietPlanInput {
     options: Array<{
       label: string
       items: Array<{
+        foodCatalogId?: string | null
         name: string
         amount?: number | null
         unit?: string | null
@@ -67,6 +69,7 @@ export interface UpdateDietFoodItemInput {
   optionLabel: string
   originalFoodName: string
   replacement: {
+    foodCatalogId?: string | null
     name: string
     amount?: number | null
     unit?: string | null

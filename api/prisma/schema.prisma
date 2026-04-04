@@ -42,6 +42,97 @@ model Recipes {
   @@map("recipes")
 }
 
+model DietPlan {
+  id             String     @id @default(uuid()) @db.Uuid
+  userId         String     @map("user_id")
+  title          String
+  targetCalories Int?       @map("target_calories")
+  isActive       Boolean    @default(true) @map("is_active")
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  meals          DietMeal[]
+
+  @@index([userId, isActive], map: "diet_plan_user_active_idx")
+  @@map("diet_plan")
+}
+
+model DietMeal {
+  id           String           @id @default(uuid()) @db.Uuid
+  dietPlanId   String           @map("diet_plan_id") @db.Uuid
+  name         String
+  timeLabel    String?          @map("time_label")
+  displayOrder Int              @map("display_order")
+  plan         DietPlan         @relation(fields: [dietPlanId], references: [id], onDelete: Cascade)
+  options      DietMealOption[]
+
+  @@index([dietPlanId, displayOrder], map: "diet_meal_plan_order_idx")
+  @@map("diet_meal")
+}
+
+model DietMealOption {
+  id         String         @id @default(uuid()) @db.Uuid
+  dietMealId String         @map("diet_meal_id") @db.Uuid
+  label      String
+  meal       DietMeal       @relation(fields: [dietMealId], references: [id], onDelete: Cascade)
+  items      DietFoodItem[]
+
+  @@index([dietMealId], map: "diet_meal_option_meal_idx")
+  @@map("diet_meal_option")
+}
+
+model DietFoodItem {
+  id                String         @id @default(uuid()) @db.Uuid
+  dietMealOptionId  String         @map("diet_meal_option_id") @db.Uuid
+  foodCatalogId     String?        @map("food_catalog_id") @db.Uuid
+  name              String
+  normalizedName    String         @map("normalized_name")
+  amount            Decimal?       @db.Decimal(10, 2)
+  unit              String?
+  estimatedCalories Decimal?       @map("estimated_calories") @db.Decimal(10, 2)
+  foodGroup         String         @map("food_group")
+  notes             String?
+  option            DietMealOption @relation(fields: [dietMealOptionId], references: [id], onDelete: Cascade)
+  foodCatalog       FoodCatalog?   @relation(fields: [foodCatalogId], references: [id], onDelete: SetNull)
+
+  @@index([normalizedName], map: "diet_food_item_normalized_name_idx")
+  @@index([dietMealOptionId], map: "diet_food_item_option_idx")
+  @@index([foodCatalogId], map: "diet_food_item_food_catalog_idx")
+  @@map("diet_food_item")
+}
+
+model FoodCatalog {
+  id             String       @id @default(uuid()) @db.Uuid
+  canonicalName  String       @map("canonical_name")
+  normalizedName String       @map("normalized_name")
+  foodGroup      String       @map("food_group")
+  baseAmount     Decimal?     @map("base_amount") @db.Decimal(10, 2)
+  baseUnit       String?      @map("base_unit")
+  calories       Decimal?     @db.Decimal(10, 2)
+  protein        Decimal?     @db.Decimal(10, 2)
+  carbs          Decimal?     @db.Decimal(10, 2)
+  fat            Decimal?     @db.Decimal(10, 2)
+  fiber          Decimal?     @db.Decimal(10, 2)
+  sourceType     String       @map("source_type")
+  sourceRef      String?      @map("source_ref")
+  aliases        FoodAlias[]
+  dietItems      DietFoodItem[]
+
+  @@unique([normalizedName], map: "food_catalog_normalized_name_key")
+  @@map("food_catalog")
+}
+
+model FoodAlias {
+  id              String      @id @default(uuid()) @db.Uuid
+  foodCatalogId   String      @map("food_catalog_id") @db.Uuid
+  alias           String
+  aliasNormalized String      @map("alias_normalized")
+  foodCatalog     FoodCatalog @relation(fields: [foodCatalogId], references: [id], onDelete: Cascade)
+
+  @@unique([aliasNormalized], map: "food_alias_alias_normalized_key")
+  @@index([foodCatalogId], map: "food_alias_food_catalog_idx")
+  @@map("food_alias")
+}
+
 enum TransactionType {
   TRANSPORT
   OTHERS

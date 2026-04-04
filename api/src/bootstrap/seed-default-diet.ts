@@ -3,6 +3,8 @@ import { useCases } from '../factories/make-use-cases'
 const DEFAULT_USER_ID = 'default-user'
 
 export async function seedDefaultDiet(): Promise<void> {
+  await useCases.seedFoodCatalog.execute()
+
   const existing = await useCases.getCurrentDiet.execute({
     userId: DEFAULT_USER_ID,
   })

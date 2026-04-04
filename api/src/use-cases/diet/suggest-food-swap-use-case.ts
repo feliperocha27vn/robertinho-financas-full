@@ -1,5 +1,5 @@
-import type { DietRepository } from '../../repositories/contracts/diet-repository'
-import type { SearchFoodNutritionUseCase } from './search-food-nutrition-use-case'
+import type { FoodCatalogRepository } from '../../repositories/contracts/food-catalog-repository'
+import type { ResolveDietFoodUseCase } from './resolve-diet-food-use-case'
 
 interface Input {
   userId: string
@@ -19,33 +19,16 @@ interface SuggestionItem {
   fat: number | null
   fiber: number | null
   foodGroup: string
-  sourceType: 'BRAZIL_STATIC' | 'USDA'
+  sourceType: 'CATALOG' | 'BRAZIL_STATIC' | 'USDA'
   sourceRef: string | null
   confidence: 'high' | 'medium' | 'low'
   calorieDelta: number
 }
 
-const FOOD_SYNONYMS: Record<string, string[]> = {
-  'banana media': ['maca', 'pera', 'goiaba', 'mamao'],
-  banana: ['maca', 'pera', 'goiaba', 'mamao'],
-  'peito de frango': ['tilapia', 'patinho moido', 'alcatra magra'],
-  frango: ['tilapia', 'patinho moido', 'alcatra magra'],
-  'arroz branco cozido': ['mandioca cozida', 'batata inglesa cozida', 'inhame cozido'],
-  arroz: ['mandioca cozida', 'batata inglesa cozida', 'inhame cozido'],
-}
-
-function normalize(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-}
-
 export class SuggestFoodSwapUseCase {
   constructor(
-    private readonly dietRepository: DietRepository,
-    private readonly searchFoodNutritionUseCase: SearchFoodNutritionUseCase
+    private readonly foodCatalogRepository: FoodCatalogRepository,
+    private readonly resolveDietFoodUseCase: ResolveDietFoodUseCase
   ) {}
 
   async execute(input: Input): Promise<{
@@ -56,8 +39,14 @@ export class SuggestFoodSwapUseCase {
     }
     suggestions: SuggestionItem[]
   }> {
-    const plan = await this.dietRepository.getActiveByUserId(input.userId)
-    if (!plan) {
+    const resolved = await this.resolveDietFoodUseCase.execute({
+      userId: input.userId,
+      mealName: input.mealName,
+      optionLabel: input.optionLabel,
+      query: input.originalFoodName,
+    })
+
+    if (!resolved) {
       return {
         originalFood: {
           name: input.originalFoodName,
@@ -68,44 +57,28 @@ export class SuggestFoodSwapUseCase {
       }
     }
 
-    const normalizedOriginal = normalize(input.originalFoodName)
-    const meals = input.mealName
-      ? plan.meals.filter(item => normalize(item.name) === normalize(input.mealName ?? ''))
-      : plan.meals
+    const caloriesBase = resolved.dietItem.estimatedCalories ?? 0
 
-    const options = meals.flatMap(meal =>
-      input.optionLabel
-        ? meal.options.filter(opt => normalize(opt.label) === normalize(input.optionLabel ?? ''))
-        : meal.options
-    )
-
-    const originalItem = options
-      .flatMap(option => option.items)
-      .find(item => normalize(item.name) === normalizedOriginal)
-
-    if (!originalItem) {
-      return {
-        originalFood: {
-          name: input.originalFoodName,
-          estimatedCalories: null,
-          foodGroup: 'OTHER',
-        },
-        suggestions: [],
-      }
-    }
-
-    const caloriesBase = originalItem.estimatedCalories ?? 0
-    const synonyms = FOOD_SYNONYMS[normalizedOriginal] ?? []
-
-    const candidates = await Promise.all(
-      synonyms.map(query => this.searchFoodNutritionUseCase.execute({ query }))
+    const candidates = await this.foodCatalogRepository.findCandidatesByGroup(
+      resolved.dietItem.foodGroup
     )
 
     const suggestions = candidates
-      .filter(item => item !== null)
-      .filter(item => item.foodGroup === originalItem.foodGroup)
+      .filter(item => item.id !== resolved.catalogItemId)
       .map(item => ({
-        ...item,
+        displayName: item.canonicalName,
+        normalizedName: item.normalizedName,
+        amount: item.baseAmount,
+        unit: item.baseUnit,
+        calories: item.calories,
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat,
+        fiber: item.fiber,
+        foodGroup: item.foodGroup,
+        sourceType: 'CATALOG' as const,
+        sourceRef: item.sourceRef,
+        confidence: 'high' as const,
         calorieDelta: (item.calories ?? 0) - caloriesBase,
       }))
       .filter(item => Math.abs(item.calorieDelta) <= 30)
@@ -113,9 +86,9 @@ export class SuggestFoodSwapUseCase {
 
     return {
       originalFood: {
-        name: originalItem.name,
-        estimatedCalories: originalItem.estimatedCalories,
-        foodGroup: originalItem.foodGroup,
+        name: resolved.dietItem.name,
+        estimatedCalories: resolved.dietItem.estimatedCalories,
+        foodGroup: resolved.dietItem.foodGroup,
       },
       suggestions,
     }

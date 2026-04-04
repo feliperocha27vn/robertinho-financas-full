@@ -1,9 +1,10 @@
 import { GoogleCalendarProvider } from '../providers/calendar/google-calendar-provider'
 import { PrismaExpensesRepository } from '../repositories/prisma/prisma-expenses-repository'
+import { PrismaFoodCatalogRepository } from '../repositories/prisma/prisma-food-catalog-repository'
 import { PrismaInstallmentsRepository } from '../repositories/prisma/prisma-installments-repository'
+import { PrismaDietRepository } from '../repositories/prisma/prisma-diet-repository'
 import { PrismaRecipesRepository } from '../repositories/prisma/prisma-recipes-repository'
 import { PrismaSessionRepository } from '../repositories/prisma/prisma-session-repository'
-import { InMemoryDietRepository } from '../repositories/in-memory/in-memory-diet-repository'
 
 export const repositories = {
   expenses: new PrismaExpensesRepository(),
@@ -11,5 +12,6 @@ export const repositories = {
   recipes: new PrismaRecipesRepository(),
   session: new PrismaSessionRepository(),
   calendar: new GoogleCalendarProvider(),
-  diet: new InMemoryDietRepository(),
+  diet: new PrismaDietRepository(),
+  foodCatalog: new PrismaFoodCatalogRepository(),
 }

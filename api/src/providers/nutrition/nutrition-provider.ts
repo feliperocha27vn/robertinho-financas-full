@@ -17,7 +17,7 @@ export interface FoodNutritionResult {
   fat: number | null
   fiber: number | null
   foodGroup: DietFoodGroup
-  sourceType: 'BRAZIL_STATIC' | 'USDA'
+  sourceType: 'CATALOG' | 'BRAZIL_STATIC' | 'USDA'
   sourceRef: string | null
   confidence: 'high' | 'medium' | 'low'
 }

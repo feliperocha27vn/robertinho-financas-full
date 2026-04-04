@@ -40,6 +40,7 @@ export class InMemoryDietRepository implements DietRepository {
           label: option.label,
           items: option.items.map(item => ({
             id: randomId(),
+            foodCatalogId: item.foodCatalogId ?? null,
             name: item.name,
             normalizedName: normalize(item.name),
             amount: item.amount ?? null,
@@ -85,6 +86,8 @@ export class InMemoryDietRepository implements DietRepository {
 
     option.items[itemIndex] = {
       id: option.items[itemIndex].id,
+      foodCatalogId:
+        input.replacement.foodCatalogId ?? option.items[itemIndex].foodCatalogId,
       name: input.replacement.name,
       normalizedName: normalize(input.replacement.name),
       amount: input.replacement.amount ?? null,
