@@ -29,10 +29,6 @@ export function makeProcessMessageUseCase() {
     useCases.getSumExpensesOfMonthVariables,
     useCases.accountsPayableNextMonth,
     useCases.payExpensesByNames,
-    useCases.updateExpenseAmount,
-    useCases.getCurrentDiet,
-    useCases.searchFoodNutrition,
-    useCases.suggestFoodSwap,
-    useCases.updateDietMealOption
+    useCases.updateExpenseAmount
   )
 }

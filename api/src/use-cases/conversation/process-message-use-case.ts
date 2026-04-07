@@ -4,10 +4,6 @@ import { handleListCalendarEvents } from '../../functions/calendar/handlers/hand
 import type { AiProvider, ToolCall } from '../../providers/ai/ai-provider'
 import type { CalendarProvider } from '../../providers/calendar/calendar-provider'
 import type { SessionRepository } from '../../repositories/contracts/session-repository'
-import type { GetCurrentDietUseCase } from '../diet/get-current-diet-use-case'
-import type { SearchFoodNutritionUseCase } from '../diet/search-food-nutrition-use-case'
-import type { SuggestFoodSwapUseCase } from '../diet/suggest-food-swap-use-case'
-import type { UpdateDietMealOptionUseCase } from '../diet/update-diet-meal-option-use-case'
 import type { AccountsPayableNextMonthUseCase } from '../expenses/accounts-payable-next-month-use-case'
 import type { AccountsToPayByDayFifteenUseCase } from '../expenses/accounts-to-pay-by-day-fifteen-use-case'
 import type { CreateExpenseInstallmentUseCase } from '../expenses/create-expense-installment-use-case'
@@ -58,11 +54,7 @@ export class ProcessMessageUseCase {
     private readonly getSumExpensesOfMonthVariablesUseCase: GetSumExpensesOfMonthVariablesUseCase,
     private readonly accountsPayableNextMonthUseCase: AccountsPayableNextMonthUseCase,
     private readonly payExpensesByNamesUseCase: PayExpensesByNamesUseCase,
-    private readonly updateExpenseAmountUseCase: UpdateExpenseAmountUseCase,
-    private readonly getCurrentDietUseCase: GetCurrentDietUseCase,
-    private readonly searchFoodNutritionUseCase: SearchFoodNutritionUseCase,
-    private readonly suggestFoodSwapUseCase: SuggestFoodSwapUseCase,
-    private readonly updateDietMealOptionUseCase: UpdateDietMealOptionUseCase
+    private readonly updateExpenseAmountUseCase: UpdateExpenseAmountUseCase
   ) {}
 
   async execute(input: Input): Promise<{ message: string }> {
@@ -250,84 +242,6 @@ export class ProcessMessageUseCase {
 
       case 'list_calendar_events': {
         return handleListCalendarEvents(this.calendarProvider, call.args)
-      }
-
-      case 'get_current_diet': {
-        const result = await this.getCurrentDietUseCase.execute({
-          userId: defaultUserId,
-        })
-        return { ok: true, result }
-      }
-
-      case 'search_food_nutrition': {
-        const result = await this.searchFoodNutritionUseCase.execute({
-          query: String(call.args.query ?? ''),
-          amount:
-            call.args.amount !== undefined
-              ? Number(call.args.amount)
-              : undefined,
-          unit:
-            call.args.unit !== undefined ? String(call.args.unit) : undefined,
-        })
-
-        return { ok: true, result }
-      }
-
-      case 'suggest_food_swap': {
-        const result = await this.suggestFoodSwapUseCase.execute({
-          userId: defaultUserId,
-          mealName:
-            call.args.mealName !== undefined
-              ? String(call.args.mealName)
-              : undefined,
-          optionLabel:
-            call.args.optionLabel !== undefined
-              ? String(call.args.optionLabel)
-              : undefined,
-          originalFoodName: String(call.args.originalFoodName ?? ''),
-        })
-
-        return { ok: true, result }
-      }
-
-      case 'update_diet_meal_option': {
-        await this.updateDietMealOptionUseCase.execute({
-          userId: defaultUserId,
-          mealName: String(call.args.mealName ?? ''),
-          optionLabel: String(call.args.optionLabel ?? ''),
-          originalFoodName: String(call.args.originalFoodName ?? ''),
-          replacement: {
-            name: String(call.args.replacementName ?? ''),
-            amount:
-              call.args.replacementAmount !== undefined
-                ? Number(call.args.replacementAmount)
-                : undefined,
-            unit:
-              call.args.replacementUnit !== undefined
-                ? String(call.args.replacementUnit)
-                : undefined,
-            estimatedCalories:
-              call.args.replacementCalories !== undefined
-                ? Number(call.args.replacementCalories)
-                : undefined,
-            foodGroup:
-              call.args.replacementFoodGroup !== undefined
-                ? (String(call.args.replacementFoodGroup) as
-                    | 'CARB'
-                    | 'PROTEIN'
-                    | 'FRUIT'
-                    | 'FAT'
-                    | 'NUT'
-                    | 'DAIRY'
-                    | 'OTHER')
-                : undefined,
-          },
-        })
-
-        return {
-          ok: true,
-          result: { message: 'Dieta atualizada com sucesso.' },
-        }
       }
 
       default:

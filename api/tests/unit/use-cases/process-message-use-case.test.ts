@@ -35,10 +35,6 @@ function makeSut(overrides?: {
     accountsPayableNextMonth: { execute: vi.fn() },
     payExpensesByNames: { execute: vi.fn() },
     updateExpenseAmount: { execute: vi.fn() },
-    getCurrentDiet: { execute: vi.fn() },
-    searchFoodNutrition: { execute: vi.fn() },
-    suggestFoodSwap: { execute: vi.fn() },
-    updateDietMealOption: { execute: vi.fn() },
   }
 
   const generateReply =
@@ -74,11 +70,7 @@ function makeSut(overrides?: {
     useCases.getSumExpensesOfMonthVariables as any,
     useCases.accountsPayableNextMonth as any,
     useCases.payExpensesByNames as any,
-    useCases.updateExpenseAmount as any,
-    useCases.getCurrentDiet as any,
-    useCases.searchFoodNutrition as any,
-    useCases.suggestFoodSwap as any,
-    useCases.updateDietMealOption as any
+    useCases.updateExpenseAmount as any
   )
 
   return { sut, sessions, useCases, calendar }
@@ -309,86 +301,6 @@ describe('ProcessMessageUseCase (all tools wired)', () => {
     expect(calendar.listEvents).toHaveBeenCalledWith({
       timeMin: '2026-04-01T00:00:00.000Z',
       timeMax: '2026-04-30T23:59:59.999Z',
-    })
-  })
-
-  it('wires diet tools to use-cases', async () => {
-    const { sut, useCases } = makeSut({
-      generateReply: async (_input, context) => {
-        await context.executeTool({
-          name: 'get_current_diet',
-          args: {},
-        })
-
-        await context.executeTool({
-          name: 'search_food_nutrition',
-          args: { query: 'banana', amount: 100, unit: 'g' },
-        })
-
-        await context.executeTool({
-          name: 'suggest_food_swap',
-          args: {
-            mealName: 'Refeicao 1',
-            optionLabel: 'Opcao 1',
-            originalFoodName: 'banana media',
-          },
-        })
-
-        await context.executeTool({
-          name: 'update_diet_meal_option',
-          args: {
-            mealName: 'Refeicao 1',
-            optionLabel: 'Opcao 1',
-            originalFoodName: 'banana media',
-            replacementName: 'maca',
-            replacementAmount: 1,
-            replacementUnit: 'unidade',
-            replacementCalories: 84,
-            replacementFoodGroup: 'FRUIT',
-          },
-        })
-
-        return {
-          message: 'ok',
-          history: [
-            { role: 'user', content: 'dieta' },
-            { role: 'assistant', content: 'ok' },
-          ],
-        }
-      },
-    })
-
-    await sut.execute({ sessionId: 't-diet', text: 'dieta' })
-
-    expect(useCases.getCurrentDiet.execute).toHaveBeenCalledWith({
-      userId: 'default-user',
-    })
-
-    expect(useCases.searchFoodNutrition.execute).toHaveBeenCalledWith({
-      query: 'banana',
-      amount: 100,
-      unit: 'g',
-    })
-
-    expect(useCases.suggestFoodSwap.execute).toHaveBeenCalledWith({
-      userId: 'default-user',
-      mealName: 'Refeicao 1',
-      optionLabel: 'Opcao 1',
-      originalFoodName: 'banana media',
-    })
-
-    expect(useCases.updateDietMealOption.execute).toHaveBeenCalledWith({
-      userId: 'default-user',
-      mealName: 'Refeicao 1',
-      optionLabel: 'Opcao 1',
-      originalFoodName: 'banana media',
-      replacement: {
-        name: 'maca',
-        amount: 1,
-        unit: 'unidade',
-        estimatedCalories: 84,
-        foodGroup: 'FRUIT',
-      },
     })
   })
 })
