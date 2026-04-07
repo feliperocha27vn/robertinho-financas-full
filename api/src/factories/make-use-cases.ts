@@ -18,6 +18,9 @@ import { UnpayExpenseUseCase } from '../use-cases/expenses/unpay-expense-use-cas
 import { UpdateExpenseAmountUseCase } from '../use-cases/expenses/update-expense-amount-use-case'
 import { CreateRecipeUseCase } from '../use-cases/recipes/create-recipe-use-case'
 import { GetHomeDataUseCase } from '../use-cases/summary/get-home-data-use-case'
+import { AddShoppingListItemUseCase } from '../use-cases/shopping-list/add-shopping-list-item-use-case'
+import { ClearShoppingListUseCase } from '../use-cases/shopping-list/clear-shopping-list-use-case'
+import { GetShoppingListUseCase } from '../use-cases/shopping-list/get-shopping-list-use-case'
 import { repositories } from './make-repositories'
 
 export const useCases = {
@@ -82,4 +85,7 @@ export const useCases = {
   ),
   deleteAllVariableExpensesCurrentMonth:
     new DeleteAllVariableExpensesCurrentMonthUseCase(repositories.expenses),
+  addShoppingListItem: new AddShoppingListItemUseCase(repositories.shoppingList),
+  getShoppingList: new GetShoppingListUseCase(repositories.shoppingList),
+  clearShoppingList: new ClearShoppingListUseCase(repositories.shoppingList),
 }
