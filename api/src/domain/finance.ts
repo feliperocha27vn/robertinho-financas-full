@@ -32,3 +32,10 @@ export interface RecipeItem {
   amount: number
   createdAt: Date
 }
+
+export interface ShoppingListItem {
+  id: string
+  userId: string
+  name: string
+  createdAt: Date
+}

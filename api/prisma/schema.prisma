@@ -42,6 +42,17 @@ model Recipes {
   @@map("recipes")
 }
 
+model ShoppingListItems {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id")
+  name      String
+  nameNorm  String   @map("name_norm")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([userId, nameNorm])
+  @@map("shopping_list_items")
+}
+
 enum TransactionType {
   TRANSPORT
   OTHERS
