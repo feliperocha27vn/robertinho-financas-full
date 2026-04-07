@@ -67,11 +67,13 @@ export class ProcessMessageUseCase {
     const existing = await this.sessionRepository.findById(input.sessionId)
     const history = existing?.history ?? []
 
+    const userId = input.sessionId
+
     const result = await this.aiProvider.generateReply(input.text, {
       currentState: existing?.currentState ?? 'idle',
       pendingData: existing?.context ?? {},
       history,
-      executeTool: call => this.executeToolCall(call),
+      executeTool: call => this.executeToolCall(call, userId),
     })
 
     await this.sessionRepository.save({
@@ -85,8 +87,7 @@ export class ProcessMessageUseCase {
     return { message: result.message }
   }
 
-  private async executeToolCall(call: ToolCall): Promise<unknown> {
-    const defaultUserId = 'default-user'
+  private async executeToolCall(call: ToolCall, userId: string): Promise<unknown> {
 
     switch (call.name) {
       case 'create_expense': {
@@ -252,7 +253,7 @@ export class ProcessMessageUseCase {
 
       case 'add_shopping_list_item': {
         const result = await this.addShoppingListItemUseCase.execute({
-          userId: defaultUserId,
+          userId,
           name: String(call.args.name ?? ''),
         })
         return { ok: true, result }
@@ -260,7 +261,7 @@ export class ProcessMessageUseCase {
 
       case 'get_shopping_list': {
         const result = await this.getShoppingListUseCase.execute({
-          userId: defaultUserId,
+          userId,
         })
         return { ok: true, result }
       }
@@ -283,7 +284,7 @@ export class ProcessMessageUseCase {
         }
 
         const result = await this.clearShoppingListUseCase.execute({
-          userId: defaultUserId,
+          userId,
         })
         return { ok: true, result }
       }
