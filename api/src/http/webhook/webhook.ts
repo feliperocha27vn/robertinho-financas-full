@@ -2,6 +2,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import z from 'zod'
 import { getContainer } from '../../container'
 import { env } from '../../env'
+import { isTransientPrismaError } from '../../lib/prisma-retry'
 import { telegramBot } from '../../lib/telegram'
 
 // Schema simplificado para o App Mobile
@@ -67,7 +68,19 @@ export const webhookRoute: FastifyPluginAsyncZod = async app => {
           message: aiResponse.message,
         })
       } catch (error) {
-        console.error('❌ Erro ao processar mensagem do chat:', error)
+        const errorMessage =
+          error instanceof Error ? error.message : String(error)
+
+        if (isTransientPrismaError(error)) {
+          console.warn(
+            `[webhook/chat] transient db error for session ${phone}: ${errorMessage}`
+          )
+        } else {
+          console.error(
+            `[webhook/chat] permanent error for session ${phone}: ${errorMessage}`
+          )
+        }
+
         return reply.status(400).send({
           error: 'Erro interno ao processar mensagem com a IA',
         })
@@ -114,7 +127,28 @@ export const webhookRoute: FastifyPluginAsyncZod = async app => {
 
         return reply.status(200).send({ ok: true })
       } catch (error) {
-        console.error('Erro ao processar webhook do Telegram:', error)
+        const errorMessage =
+          error instanceof Error ? error.message : String(error)
+
+        if (isTransientPrismaError(error)) {
+          console.warn(
+            `[webhook/telegram] transient db error for session ${sessionId}: ${errorMessage}`
+          )
+          await telegramBot
+            .sendMessage(
+              Number(chatId),
+              'Tive uma indisponibilidade momentanea ao acessar seus dados. Tente novamente em alguns segundos.',
+              {
+                parse_mode: 'HTML',
+              }
+            )
+            .catch(() => {})
+        } else {
+          console.error(
+            `[webhook/telegram] permanent error for session ${sessionId}: ${errorMessage}`
+          )
+        }
+
         return reply.status(200).send({ ok: true })
       }
     }
