@@ -49,6 +49,9 @@ RUN npx -y prisma@6.16.3 generate
 # Copy built application from build stage
 COPY --from=build /app/dist ./dist
 
+# Copy prompt text files (read at runtime by build-system-context.ts)
+COPY --from=build /app/src/providers/ai/system/*.txt ./dist/providers/ai/system/
+
 # Change ownership to nodejs user
 RUN chown -R nodejs:nodejs /app
 USER nodejs
