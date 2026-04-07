@@ -24,6 +24,9 @@ import type { UnpayExpenseUseCase } from '../expenses/unpay-expense-use-case'
 import type { UpdateExpenseAmountUseCase } from '../expenses/update-expense-amount-use-case'
 import type { CreateRecipeUseCase } from '../recipes/create-recipe-use-case'
 import type { GetHomeDataUseCase } from '../summary/get-home-data-use-case'
+import type { AddShoppingListItemUseCase } from '../shopping-list/add-shopping-list-item-use-case'
+import type { ClearShoppingListUseCase } from '../shopping-list/clear-shopping-list-use-case'
+import type { GetShoppingListUseCase } from '../shopping-list/get-shopping-list-use-case'
 
 interface Input {
   sessionId: string
@@ -54,7 +57,10 @@ export class ProcessMessageUseCase {
     private readonly getSumExpensesOfMonthVariablesUseCase: GetSumExpensesOfMonthVariablesUseCase,
     private readonly accountsPayableNextMonthUseCase: AccountsPayableNextMonthUseCase,
     private readonly payExpensesByNamesUseCase: PayExpensesByNamesUseCase,
-    private readonly updateExpenseAmountUseCase: UpdateExpenseAmountUseCase
+    private readonly updateExpenseAmountUseCase: UpdateExpenseAmountUseCase,
+    private readonly addShoppingListItemUseCase: AddShoppingListItemUseCase,
+    private readonly getShoppingListUseCase: GetShoppingListUseCase,
+    private readonly clearShoppingListUseCase: ClearShoppingListUseCase
   ) {}
 
   async execute(input: Input): Promise<{ message: string }> {
@@ -242,6 +248,44 @@ export class ProcessMessageUseCase {
 
       case 'list_calendar_events': {
         return handleListCalendarEvents(this.calendarProvider, call.args)
+      }
+
+      case 'add_shopping_list_item': {
+        const result = await this.addShoppingListItemUseCase.execute({
+          userId: defaultUserId,
+          name: String(call.args.name ?? ''),
+        })
+        return { ok: true, result }
+      }
+
+      case 'get_shopping_list': {
+        const result = await this.getShoppingListUseCase.execute({
+          userId: defaultUserId,
+        })
+        return { ok: true, result }
+      }
+
+      case 'clear_shopping_list': {
+        const confirmation = call.args.confirmation
+          ? String(call.args.confirmation)
+          : undefined
+        const isConfirmed =
+          confirmation === 'sim' ||
+          confirmation === 'confirmar' ||
+          confirmation === 'ok'
+
+        if (!isConfirmed) {
+          return {
+            ok: false,
+            error:
+              'Confirmacao necessaria. Responda sim, confirmar ou ok para limpar a lista.',
+          }
+        }
+
+        const result = await this.clearShoppingListUseCase.execute({
+          userId: defaultUserId,
+        })
+        return { ok: true, result }
       }
 
       default:

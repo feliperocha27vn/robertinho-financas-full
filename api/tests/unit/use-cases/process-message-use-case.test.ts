@@ -35,6 +35,9 @@ function makeSut(overrides?: {
     accountsPayableNextMonth: { execute: vi.fn() },
     payExpensesByNames: { execute: vi.fn() },
     updateExpenseAmount: { execute: vi.fn() },
+    addShoppingListItem: { execute: vi.fn() },
+    getShoppingList: { execute: vi.fn() },
+    clearShoppingList: { execute: vi.fn() },
   }
 
   const generateReply =
@@ -70,7 +73,10 @@ function makeSut(overrides?: {
     useCases.getSumExpensesOfMonthVariables as any,
     useCases.accountsPayableNextMonth as any,
     useCases.payExpensesByNames as any,
-    useCases.updateExpenseAmount as any
+    useCases.updateExpenseAmount as any,
+    useCases.addShoppingListItem as any,
+    useCases.getShoppingList as any,
+    useCases.clearShoppingList as any
   )
 
   return { sut, sessions, useCases, calendar }
@@ -302,5 +308,78 @@ describe('ProcessMessageUseCase (all tools wired)', () => {
       timeMin: '2026-04-01T00:00:00.000Z',
       timeMax: '2026-04-30T23:59:59.999Z',
     })
+  })
+
+  it('wires shopping list tools to use-cases', async () => {
+    const { sut, useCases } = makeSut({
+      generateReply: async (_input, context) => {
+        await context.executeTool({
+          name: 'add_shopping_list_item',
+          args: { name: 'detergente' },
+        })
+
+        await context.executeTool({
+          name: 'get_shopping_list',
+          args: {},
+        })
+
+        await context.executeTool({
+          name: 'clear_shopping_list',
+          args: { confirmation: 'sim' },
+        })
+
+        return {
+          message: 'ok',
+          history: [
+            { role: 'user', content: 'lista' },
+            { role: 'assistant', content: 'ok' },
+          ],
+        }
+      },
+    })
+
+    await sut.execute({ sessionId: 't-shopping', text: 'lista' })
+
+    expect(useCases.addShoppingListItem.execute).toHaveBeenCalledWith({
+      userId: 'default-user',
+      name: 'detergente',
+    })
+
+    expect(useCases.getShoppingList.execute).toHaveBeenCalledWith({
+      userId: 'default-user',
+    })
+
+    expect(useCases.clearShoppingList.execute).toHaveBeenCalledWith({
+      userId: 'default-user',
+    })
+  })
+
+  it('rejects clear_shopping_list without confirmation', async () => {
+    const { sut, useCases } = makeSut({
+      generateReply: async (_input, context) => {
+        const result = await context.executeTool({
+          name: 'clear_shopping_list',
+          args: {},
+        })
+
+        expect(result).toEqual({
+          ok: false,
+          error:
+            'Confirmacao necessaria. Responda sim, confirmar ou ok para limpar a lista.',
+        })
+
+        return {
+          message: 'ok',
+          history: [
+            { role: 'user', content: 'limpa lista' },
+            { role: 'assistant', content: 'ok' },
+          ],
+        }
+      },
+    })
+
+    await sut.execute({ sessionId: 't-clear-no-confirm', text: 'limpa lista' })
+
+    expect(useCases.clearShoppingList.execute).not.toHaveBeenCalled()
   })
 })

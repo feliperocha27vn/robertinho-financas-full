@@ -187,6 +187,41 @@ export const declarationDeleteAllVariableExpensesCurrentMonth = {
   },
 }
 
+export const declarationAddShoppingListItem = {
+  name: 'add_shopping_list_item',
+  description: 'Adiciona um item na lista de compras do usuario.',
+  parametersJsonSchema: {
+    type: Type.OBJECT,
+    properties: {
+      name: { type: Type.STRING },
+    },
+    required: ['name'],
+  },
+}
+
+export const declarationGetShoppingList = {
+  name: 'get_shopping_list',
+  description: 'Retorna a lista de compras atual do usuario.',
+  parametersJsonSchema: {
+    type: Type.OBJECT,
+    properties: {},
+    required: [],
+  },
+}
+
+export const declarationClearShoppingList = {
+  name: 'clear_shopping_list',
+  description:
+    'Limpa toda a lista de compras do usuario. Requer confirmation com valor "sim", "confirmar" ou "ok".',
+  parametersJsonSchema: {
+    type: Type.OBJECT,
+    properties: {
+      confirmation: { type: Type.STRING },
+    },
+    required: [],
+  },
+}
+
 export const financeFunctionDeclarations = [
   {
     name: 'create_expense',
@@ -294,6 +329,9 @@ export const financeFunctionDeclarations = [
   declarationDeleteVariableExpenseByName,
   declarationPreviewDeleteAllVariableExpensesCurrentMonth,
   declarationDeleteAllVariableExpensesCurrentMonth,
+  declarationAddShoppingListItem,
+  declarationGetShoppingList,
+  declarationClearShoppingList,
   declarationCalendar,
   declarationListCalendarEvents,
 ]
