@@ -1,11 +1,14 @@
 import request from 'supertest'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { app } from '../../../src/app'
 import { resetContainer, setContainer } from '../../../src/container'
 
 describe('GET /summary/home', () => {
   afterEach(async () => {
     resetContainer()
+  })
+
+  afterAll(async () => {
     await app.close()
   })
 
@@ -25,7 +28,34 @@ describe('GET /summary/home', () => {
       accountsToPayByDayFifteen: {
         execute: vi
           .fn()
-          .mockResolvedValue({ totalAmountForPayByDayFifteen: 0 }),
+          .mockResolvedValue({
+            accountsPayableMonth: [],
+            totalAmountForPayByDayFifteen: 0,
+          }),
+      },
+      getAllRemainingInstallments: {
+        execute: vi.fn().mockResolvedValue({
+          installments: [],
+          totalOverallRemaining: 0,
+        }),
+      },
+      getMobileOverview: {
+        execute: vi.fn().mockResolvedValue({
+          summary: {
+            balance: 0,
+            income: 0,
+            expense: 0,
+            recentTransactions: [],
+          },
+          accountsPayableByDayFifteen: {
+            accountsPayableMonth: [],
+            totalAmountForPayByDayFifteen: 0,
+          },
+          remainingInstallments: {
+            installments: [],
+            totalOverallRemaining: 0,
+          },
+        }),
       },
     })
 

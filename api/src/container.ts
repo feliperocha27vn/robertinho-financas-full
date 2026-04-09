@@ -24,7 +24,54 @@ export interface AppContainer {
   }
   accountsToPayByDayFifteen: {
     execute(): Promise<{
+      accountsPayableMonth: {
+        description: string
+        amount: number
+      }[]
       totalAmountForPayByDayFifteen: number
+    }>
+  }
+  getAllRemainingInstallments: {
+    execute(): Promise<{
+      installments: {
+        expenseDescription: string
+        remainingCount: number
+        installmentValue: number
+        totalRemaining: number
+      }[]
+      totalOverallRemaining: number
+    }>
+  }
+  getMobileOverview: {
+    execute(): Promise<{
+      summary: {
+        balance: number
+        income: number
+        expense: number
+        recentTransactions: {
+          id: string
+          description: string
+          amount: number
+          category: string
+          date: Date
+        }[]
+      }
+      accountsPayableByDayFifteen: {
+        accountsPayableMonth: {
+          description: string
+          amount: number
+        }[]
+        totalAmountForPayByDayFifteen: number
+      }
+      remainingInstallments: {
+        installments: {
+          expenseDescription: string
+          remainingCount: number
+          installmentValue: number
+          totalRemaining: number
+        }[]
+        totalOverallRemaining: number
+      }
     }>
   }
 }
@@ -33,6 +80,8 @@ const defaultContainer: AppContainer = {
   processMessage: makeProcessMessageUseCase(),
   getHomeData: useCases.getHomeData,
   accountsToPayByDayFifteen: useCases.accountsToPayByDayFifteen,
+  getAllRemainingInstallments: useCases.getAllRemainingInstallments,
+  getMobileOverview: useCases.getMobileOverview,
 }
 
 let currentContainer: AppContainer = defaultContainer
