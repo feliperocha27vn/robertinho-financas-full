@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client'
 import type { ShoppingListItem } from '../../domain/finance'
 import { prisma } from '../../lib/prisma'
+import { withPrismaRetry } from '../../lib/prisma-retry'
 import { normalizeShoppingListName } from '../shared/normalize-shopping-list-name'
 import type {
   AddShoppingListItemInput,
@@ -15,13 +16,17 @@ export class PrismaShoppingListRepository implements ShoppingListRepository {
     const normalizedName = normalizeShoppingListName(input.name)
 
     try {
-      const created = await prisma.shoppingListItems.create({
-        data: {
-          userId: input.userId,
-          name: input.name.trim(),
-          nameNorm: normalizedName,
-        },
-      })
+      const created = await withPrismaRetry(
+        () =>
+          prisma.shoppingListItems.create({
+            data: {
+              userId: input.userId,
+              name: input.name.trim(),
+              nameNorm: normalizedName,
+            },
+          }),
+        'shoppingListRepository.addItem.create'
+      )
 
       return {
         created: true,
@@ -32,14 +37,18 @@ export class PrismaShoppingListRepository implements ShoppingListRepository {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        const existing = await prisma.shoppingListItems.findUnique({
-          where: {
-            userId_nameNorm: {
-              userId: input.userId,
-              nameNorm: normalizedName,
-            },
-          },
-        })
+        const existing = await withPrismaRetry(
+          () =>
+            prisma.shoppingListItems.findUnique({
+              where: {
+                userId_nameNorm: {
+                  userId: input.userId,
+                  nameNorm: normalizedName,
+                },
+              },
+            }),
+          'shoppingListRepository.addItem.findUnique'
+        )
 
         if (!existing) {
           throw error
@@ -56,18 +65,26 @@ export class PrismaShoppingListRepository implements ShoppingListRepository {
   }
 
   async listItems(userId: string): Promise<ShoppingListItem[]> {
-    const items = await prisma.shoppingListItems.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    })
+    const items = await withPrismaRetry(
+      () =>
+        prisma.shoppingListItems.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+        }),
+      'shoppingListRepository.listItems'
+    )
 
     return items.map(item => this.toDomain(item))
   }
 
   async clearItems(userId: string): Promise<number> {
-    const result = await prisma.shoppingListItems.deleteMany({
-      where: { userId },
-    })
+    const result = await withPrismaRetry(
+      () =>
+        prisma.shoppingListItems.deleteMany({
+          where: { userId },
+        }),
+      'shoppingListRepository.clearItems'
+    )
 
     return result.count
   }

@@ -1,2 +1,5 @@
 node_modules
 .worktrees
+android/.gradle/
+android/build/
+android/app/build/

@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client'
 import type { RecipeItem } from '../../domain/finance'
 import { prisma } from '../../lib/prisma'
+import { withPrismaRetry } from '../../lib/prisma-retry'
 import type {
   CreateRecipeInput,
   RecipesRepository,
@@ -8,12 +9,16 @@ import type {
 
 export class PrismaRecipesRepository implements RecipesRepository {
   async create(input: CreateRecipeInput): Promise<RecipeItem> {
-    const created = await prisma.recipes.create({
-      data: {
-        description: input.description,
-        amount: new Prisma.Decimal(input.amount),
-      },
-    })
+    const created = await withPrismaRetry(
+      () =>
+        prisma.recipes.create({
+          data: {
+            description: input.description,
+            amount: new Prisma.Decimal(input.amount),
+          },
+        }),
+      'recipesRepository.create'
+    )
 
     return {
       id: created.id,
@@ -24,10 +29,14 @@ export class PrismaRecipesRepository implements RecipesRepository {
   }
 
   async sumInRange(start: Date, end: Date): Promise<number> {
-    const { _sum } = await prisma.recipes.aggregate({
-      _sum: { amount: true },
-      where: { createdAt: { gte: start, lte: end } },
-    })
+    const { _sum } = await withPrismaRetry(
+      () =>
+        prisma.recipes.aggregate({
+          _sum: { amount: true },
+          where: { createdAt: { gte: start, lte: end } },
+        }),
+      'recipesRepository.sumInRange'
+    )
 
     return Number(_sum.amount ?? 0)
   }

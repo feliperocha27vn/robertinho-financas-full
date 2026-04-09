@@ -4,6 +4,7 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod'
+import { mobileRoutes } from './http/mobile/routes'
 import { indexRoutes } from './http/routes/index.routes'
 import { webhookRoutes } from './http/webhook/routes'
 
@@ -14,3 +15,4 @@ app.setSerializerCompiler(serializerCompiler)
 
 app.register(webhookRoutes)
 app.register(indexRoutes)
+app.register(mobileRoutes)

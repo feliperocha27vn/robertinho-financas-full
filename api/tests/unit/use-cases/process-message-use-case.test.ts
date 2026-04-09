@@ -341,16 +341,16 @@ describe('ProcessMessageUseCase (all tools wired)', () => {
     await sut.execute({ sessionId: 't-shopping', text: 'lista' })
 
     expect(useCases.addShoppingListItem.execute).toHaveBeenCalledWith({
-      userId: 'default-user',
+      userId: 't-shopping',
       name: 'detergente',
     })
 
     expect(useCases.getShoppingList.execute).toHaveBeenCalledWith({
-      userId: 'default-user',
+      userId: 't-shopping',
     })
 
     expect(useCases.clearShoppingList.execute).toHaveBeenCalledWith({
-      userId: 'default-user',
+      userId: 't-shopping',
     })
   })
 

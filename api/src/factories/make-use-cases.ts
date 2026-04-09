@@ -17,11 +17,26 @@ import { PayInstallmentUseCase } from '../use-cases/expenses/pay-installment-use
 import { UnpayExpenseUseCase } from '../use-cases/expenses/unpay-expense-use-case'
 import { UpdateExpenseAmountUseCase } from '../use-cases/expenses/update-expense-amount-use-case'
 import { CreateRecipeUseCase } from '../use-cases/recipes/create-recipe-use-case'
+import { GetMobileOverviewUseCase } from '../use-cases/mobile/get-mobile-overview-use-case'
 import { GetHomeDataUseCase } from '../use-cases/summary/get-home-data-use-case'
 import { AddShoppingListItemUseCase } from '../use-cases/shopping-list/add-shopping-list-item-use-case'
 import { ClearShoppingListUseCase } from '../use-cases/shopping-list/clear-shopping-list-use-case'
 import { GetShoppingListUseCase } from '../use-cases/shopping-list/get-shopping-list-use-case'
 import { repositories } from './make-repositories'
+
+const getHomeDataUseCase = new GetHomeDataUseCase(
+  repositories.expenses,
+  repositories.installments,
+  repositories.recipes
+)
+
+const accountsToPayByDayFifteenUseCase = new AccountsToPayByDayFifteenUseCase(
+  repositories.expenses,
+  repositories.installments
+)
+
+const getAllRemainingInstallmentsUseCase =
+  new GetAllRemainingInstallmentsUseCase(repositories.installments)
 
 export const useCases = {
   createExpense: new CreateExpenseUseCase(repositories.expenses),
@@ -48,9 +63,7 @@ export const useCases = {
     repositories.expenses,
     repositories.installments
   ),
-  getAllRemainingInstallments: new GetAllRemainingInstallmentsUseCase(
-    repositories.installments
-  ),
+  getAllRemainingInstallments: getAllRemainingInstallmentsUseCase,
   payInstallment: new PayInstallmentUseCase(
     repositories.expenses,
     repositories.installments
@@ -71,14 +84,12 @@ export const useCases = {
     repositories.expenses,
     repositories.installments
   ),
-  accountsToPayByDayFifteen: new AccountsToPayByDayFifteenUseCase(
-    repositories.expenses,
-    repositories.installments
-  ),
-  getHomeData: new GetHomeDataUseCase(
-    repositories.expenses,
-    repositories.installments,
-    repositories.recipes
+  accountsToPayByDayFifteen: accountsToPayByDayFifteenUseCase,
+  getHomeData: getHomeDataUseCase,
+  getMobileOverview: new GetMobileOverviewUseCase(
+    getHomeDataUseCase,
+    accountsToPayByDayFifteenUseCase,
+    getAllRemainingInstallmentsUseCase
   ),
   deleteVariableExpenseByName: new DeleteVariableExpenseByNameUseCase(
     repositories.expenses
