@@ -11,11 +11,13 @@ const { botMock, handlers, processMessageUseCaseMock } = vi.hoisted(() => {
   )
 
   const sendMessage = vi.fn().mockResolvedValue(undefined)
+  const deleteWebHook = vi.fn().mockResolvedValue(true)
+  const setWebHook = vi.fn().mockResolvedValue(true)
   const execute = vi.fn().mockResolvedValue({ message: 'resposta telegram' })
 
   return {
     handlers: map,
-    botMock: { on, sendMessage },
+    botMock: { on, sendMessage, deleteWebHook, setWebHook },
     processMessageUseCaseMock: { execute },
   }
 })
@@ -32,7 +34,8 @@ import { startTelegramBot } from '../../../src/telegram'
 
 describe('startTelegramBot', () => {
   it('processes incoming telegram message and sends response', async () => {
-    startTelegramBot()
+    process.env.FLY_APP_NAME = 'test-app'
+    await startTelegramBot()
 
     const messageHandler = handlers.get('message')?.[0]
     await messageHandler?.({
