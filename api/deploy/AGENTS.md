@@ -21,6 +21,7 @@ Este projeto segue o padrao abaixo:
    - `DATABASE_URL`
    - `GEMINI_API_KEY`
    - `TELEGRAM_BOT_TOKEN`
+   - `MOBILE_APP_TOKEN`
 4. Rodar deploy:
 
 ```bash
@@ -40,4 +41,20 @@ fly logs
 fly secrets set DATABASE_URL="postgresql://USER:PASSWORD@HOST/DB?sslmode=require"
 fly secrets set GEMINI_API_KEY="seu_valor"
 fly secrets set TELEGRAM_BOT_TOKEN="seu_valor"
+fly secrets set MOBILE_APP_TOKEN="um_token_forte_e_aleatorio"
+```
+
+## Rotas mobile protegidas
+
+As rotas abaixo sao somente leitura e exigem o header `x-mobile-app-token`:
+
+- `GET /mobile/overview`
+- `GET /mobile/summary`
+- `GET /mobile/accounts-payable/day-fifteen`
+- `GET /mobile/installments/remaining`
+
+Exemplo rapido:
+
+```bash
+curl -H "x-mobile-app-token: $MOBILE_APP_TOKEN" https://robertinho.fly.dev/mobile/summary
 ```

@@ -16,7 +16,8 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "MOBILE_APP_TOKEN", "\"\"")
+        buildConfigField("String", "API_BASE_URL", "\"https://robertinho.fly.dev/\"")
+        buildConfigField("String", "MOBILE_APP_TOKEN", "\"dev-mobile-token\"")
     }
 
     buildTypes {

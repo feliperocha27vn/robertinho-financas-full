@@ -9,7 +9,7 @@ import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 
 object NetworkModule {
-    private const val BASE_URL = "https://example.com"
+    private const val BASE_URL = BuildConfig.API_BASE_URL
 
     private val json = Json {
         ignoreUnknownKeys = true
