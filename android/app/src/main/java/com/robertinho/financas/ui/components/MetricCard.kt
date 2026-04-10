@@ -10,10 +10,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun MetricCard(label: String, value: Double, modifier: Modifier = Modifier) {
+    val valueColor = if (value < 0) {
+        Color(0xFF8E4E36)
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -30,7 +37,8 @@ fun MetricCard(label: String, value: Double, modifier: Modifier = Modifier) {
             )
             Text(
                 text = formatCurrency(value),
-                style = MaterialTheme.typography.titleLarge
+                style = MaterialTheme.typography.titleLarge,
+                color = valueColor
             )
         }
     }

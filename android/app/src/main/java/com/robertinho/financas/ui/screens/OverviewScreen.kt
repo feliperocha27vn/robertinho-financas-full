@@ -9,6 +9,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import com.robertinho.financas.data.model.OverviewDto
 import com.robertinho.financas.data.repository.DashboardRepository
 import com.robertinho.financas.ui.components.EmptyStateCard
@@ -76,8 +78,9 @@ fun OverviewScreen(
             }
             item {
                 SectionCard(title = "Até o dia 15") {
-                    androidx.compose.material3.Text(
-                        "Total previsto: ${formatCurrency(data.accountsPayableByDayFifteen.totalAmountForPayByDayFifteen)}"
+                    Text(
+                        "Total previsto: ${formatCurrency(data.accountsPayableByDayFifteen.totalAmountForPayByDayFifteen)}",
+                        style = MaterialTheme.typography.bodyLarge
                     )
                     if (data.accountsPayableByDayFifteen.accountsPayableMonth.isEmpty()) {
                         EmptyStateCard("Nenhuma conta pendente até o dia 15.")
@@ -90,8 +93,9 @@ fun OverviewScreen(
             }
             item {
                 SectionCard(title = "Parcelas restantes") {
-                    androidx.compose.material3.Text(
-                        "Total restante: ${formatCurrency(data.remainingInstallments.totalOverallRemaining)}"
+                    Text(
+                        "Total restante: ${formatCurrency(data.remainingInstallments.totalOverallRemaining)}",
+                        style = MaterialTheme.typography.bodyLarge
                     )
                     if (data.remainingInstallments.installments.isEmpty()) {
                         EmptyStateCard("Nenhuma parcela restante no momento.")

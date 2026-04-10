@@ -14,4 +14,10 @@ class UiFormattersTest {
     fun formatInstallmentLabel_formatsCount() {
         assertEquals("4 parcelas restantes", formatInstallmentLabel(4))
     }
+
+    @Test
+    fun formatCategoryLabel_humanizesCategory() {
+        assertEquals("Transport", formatCategoryLabel("TRANSPORT"))
+        assertEquals("Food And Drinks", formatCategoryLabel("FOOD_AND_DRINKS"))
+    }
 }

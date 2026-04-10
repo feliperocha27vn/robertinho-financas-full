@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import com.robertinho.financas.data.model.InstallmentsDto
 import com.robertinho.financas.data.repository.DashboardRepository
 import com.robertinho.financas.ui.components.EmptyStateCard
@@ -12,6 +14,7 @@ import com.robertinho.financas.ui.components.HeroBalanceCard
 import com.robertinho.financas.ui.components.InstallmentRow
 import com.robertinho.financas.ui.components.LoadingSkeleton
 import com.robertinho.financas.ui.components.SectionCard
+import com.robertinho.financas.ui.components.formatCurrency
 
 class InstallmentsViewModel(
     private val repository: DashboardRepository
@@ -50,6 +53,10 @@ fun InstallmentsScreen(
             }
             item {
                 SectionCard(title = "Compras parceladas") {
+                    Text(
+                        "Total restante: ${formatCurrency(data.totalOverallRemaining)}",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
                     if (data.installments.isEmpty()) {
                         EmptyStateCard("Nenhuma parcela restante no momento.")
                     } else {

@@ -12,11 +12,18 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun TransactionRow(description: String, category: String, amount: Double) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(description, style = MaterialTheme.typography.bodyLarge)
-            Text(category, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(description, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    formatCategoryLabel(category),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(formatCurrency(amount), style = MaterialTheme.typography.bodyLarge)
         }
-        Text(formatCurrency(amount), style = MaterialTheme.typography.bodyLarge)
+        SectionRowDivider()
     }
 }

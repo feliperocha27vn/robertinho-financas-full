@@ -10,3 +10,11 @@ fun formatCurrency(value: Double): String =
 
 fun formatInstallmentLabel(count: Int): String =
     if (count == 1) "1 parcela restante" else "$count parcelas restantes"
+
+fun formatCategoryLabel(category: String): String =
+    category
+        .lowercase(brazilLocale)
+        .replace('_', ' ')
+        .split(' ')
+        .filter { it.isNotBlank() }
+        .joinToString(" ") { token -> token.replaceFirstChar { it.titlecase(brazilLocale) } }

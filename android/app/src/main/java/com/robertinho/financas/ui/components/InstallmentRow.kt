@@ -17,7 +17,7 @@ fun InstallmentRow(
     remainingCount: Int,
     totalRemaining: Double
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(description, style = MaterialTheme.typography.bodyLarge)
             Text(formatCurrency(installmentValue), style = MaterialTheme.typography.bodyLarge)
@@ -27,5 +27,6 @@ fun InstallmentRow(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        SectionRowDivider()
     }
 }
