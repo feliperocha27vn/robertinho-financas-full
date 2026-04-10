@@ -1,17 +1,17 @@
 package com.robertinho.financas.ui.screens
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.robertinho.financas.data.model.DayFifteenDto
 import com.robertinho.financas.data.repository.DashboardRepository
+import com.robertinho.financas.ui.components.EmptyStateCard
+import com.robertinho.financas.ui.components.ErrorStateCard
+import com.robertinho.financas.ui.components.HeroBalanceCard
+import com.robertinho.financas.ui.components.LoadingSkeleton
+import com.robertinho.financas.ui.components.PayableRow
+import com.robertinho.financas.ui.components.SectionCard
 
 class DayFifteenViewModel(
     private val repository: DashboardRepository
@@ -30,20 +30,35 @@ fun DayFifteenScreen(
 ) {
     val state by vm.state.collectAsState()
     DashboardReadOnlyScreen(
-        title = "Ate dia 15",
+        title = "Até o dia 15",
+        subtitle = "Tudo o que merece atenção no curto prazo.",
         state = state,
         paddingValues = paddingValues,
+        loadingContent = {
+            item { LoadingSkeleton() }
+        },
+        errorContent = { message ->
+            item { ErrorStateCard(message, vm::refresh) }
+        },
         successContent = { data ->
-            Card {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Contas a vencer: ${data.dueCount}")
-                    Text("Valor total: R$ ${data.dueAmount}")
-                    Text("Dias restantes: ${data.remainingDays}")
+            item {
+                HeroBalanceCard(
+                    label = "Total previsto",
+                    value = data.totalAmountForPayByDayFifteen,
+                    supportingText = "Compromissos financeiros antes do dia 15"
+                )
+            }
+            item {
+                SectionCard(title = "Contas a pagar") {
+                    if (data.accountsPayableMonth.isEmpty()) {
+                        EmptyStateCard("Nenhuma conta pendente até o dia 15.")
+                    } else {
+                        data.accountsPayableMonth.forEach {
+                            PayableRow(it.description, it.amount)
+                        }
+                    }
                 }
             }
-        },
-        onRetry = {
-            vm.refresh()
         }
     )
 }

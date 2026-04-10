@@ -1,45 +1,25 @@
 package com.robertinho.financas.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import com.robertinho.financas.ui.components.ScreenContainer
 
 @Composable
 fun <T> DashboardReadOnlyScreen(
     title: String,
+    subtitle: String? = null,
     state: UiState<T>,
     paddingValues: PaddingValues,
-    successContent: @Composable (T) -> Unit,
-    onRetry: () -> Unit
+    loadingContent: LazyListScope.() -> Unit,
+    errorContent: LazyListScope.(String) -> Unit,
+    successContent: LazyListScope.(T) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(text = title)
+    ScreenContainer(title = title, subtitle = subtitle, paddingValues = paddingValues) {
         when (state) {
-            is UiState.Loading -> CircularProgressIndicator()
+            is UiState.Loading -> loadingContent()
+            is UiState.Error -> errorContent(state.message)
             is UiState.Success -> successContent(state.data)
-            is UiState.Error -> {
-                Text(text = state.message)
-                Button(onClick = onRetry) {
-                    Text("Tentar novamente")
-                }
-            }
-        }
-        Button(onClick = onRetry) {
-            Text("Atualizar")
         }
     }
 }

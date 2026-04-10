@@ -11,11 +11,13 @@ private val LightColors = lightColorScheme(
     tertiary = MutedTaupe,
     background = CanvasOat,
     surface = PureSurface,
+    surfaceVariant = SoftHighlight,
     onPrimary = PureSurface,
     onSecondary = InkBrown,
     onTertiary = PureSurface,
     onBackground = InkBrown,
     onSurface = InkBrown,
+    onSurfaceVariant = MutedTaupe,
     outline = WhisperLine
 )
 
