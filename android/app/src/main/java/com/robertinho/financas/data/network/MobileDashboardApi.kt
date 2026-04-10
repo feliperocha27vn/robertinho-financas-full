@@ -13,9 +13,9 @@ interface MobileDashboardApi {
     @GET("/mobile/summary")
     suspend fun getSummary(): SummaryDto
 
-    @GET("/mobile/day-fifteen")
+    @GET("/mobile/accounts-payable/day-fifteen")
     suspend fun getDayFifteen(): DayFifteenDto
 
-    @GET("/mobile/installments")
+    @GET("/mobile/installments/remaining")
     suspend fun getInstallments(): InstallmentsDto
 }

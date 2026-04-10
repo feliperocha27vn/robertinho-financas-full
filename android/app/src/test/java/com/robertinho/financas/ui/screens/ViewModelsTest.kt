@@ -1,10 +1,13 @@
 package com.robertinho.financas.ui.screens
 
 import com.robertinho.financas.data.model.DayFifteenDto
+import com.robertinho.financas.data.model.OverviewSummaryDto
+import com.robertinho.financas.data.model.AccountPayableItemDto
+import com.robertinho.financas.data.model.AccountsPayableByDayFifteenDto
 import com.robertinho.financas.data.model.InstallmentItemDto
 import com.robertinho.financas.data.model.InstallmentsDto
 import com.robertinho.financas.data.model.OverviewDto
-import com.robertinho.financas.data.model.SummaryCategoryDto
+import com.robertinho.financas.data.model.RemainingInstallmentsDto
 import com.robertinho.financas.data.model.SummaryDto
 import com.robertinho.financas.data.repository.DashboardRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -22,7 +25,17 @@ class ViewModelsTest {
 
     @Test
     fun overviewViewModel_emitsSuccess() = runTest {
-        val expected = OverviewDto("Painel", 1000.0, 2000.0, 1000.0)
+        val expected = OverviewDto(
+            summary = OverviewSummaryDto(1000.0, 2000.0, 1000.0, emptyList()),
+            accountsPayableByDayFifteen = AccountsPayableByDayFifteenDto(
+                accountsPayableMonth = emptyList(),
+                totalAmountForPayByDayFifteen = 0.0
+            ),
+            remainingInstallments = RemainingInstallmentsDto(
+                installments = emptyList(),
+                totalOverallRemaining = 0.0
+            )
+        )
         val vm = OverviewViewModel(FakeRepository(overview = expected))
 
         advanceUntilIdle()
@@ -33,7 +46,12 @@ class ViewModelsTest {
 
     @Test
     fun summaryViewModel_emitsSuccess() = runTest {
-        val expected = SummaryDto("Abr/2026", listOf(SummaryCategoryDto("Casa", 300.0)))
+        val expected = SummaryDto(
+            balance = 1200.0,
+            income = 2500.0,
+            expense = 1300.0,
+            recentTransactions = emptyList()
+        )
         val vm = SummaryViewModel(FakeRepository(summary = expected))
 
         advanceUntilIdle()
@@ -44,7 +62,10 @@ class ViewModelsTest {
 
     @Test
     fun dayFifteenViewModel_emitsSuccess() = runTest {
-        val expected = DayFifteenDto(3, 450.0, 7)
+        val expected = DayFifteenDto(
+            accountsPayableMonth = listOf(AccountPayableItemDto("Aluguel", 450.0)),
+            totalAmountForPayByDayFifteen = 450.0
+        )
         val vm = DayFifteenViewModel(FakeRepository(dayFifteen = expected))
 
         advanceUntilIdle()
@@ -56,7 +77,15 @@ class ViewModelsTest {
     @Test
     fun installmentsViewModel_emitsSuccess() = runTest {
         val expected = InstallmentsDto(
-            items = listOf(InstallmentItemDto("Notebook", 250.0, 4))
+            installments = listOf(
+                InstallmentItemDto(
+                    expenseDescription = "Notebook",
+                    installmentValue = 250.0,
+                    remainingCount = 4,
+                    totalRemaining = 1000.0
+                )
+            ),
+            totalOverallRemaining = 1000.0
         )
         val vm = InstallmentsViewModel(FakeRepository(installments = expected))
 
@@ -68,10 +97,14 @@ class ViewModelsTest {
 }
 
 private class FakeRepository(
-    private val overview: OverviewDto = OverviewDto("", 0.0, 0.0, 0.0),
-    private val summary: SummaryDto = SummaryDto("", emptyList()),
-    private val dayFifteen: DayFifteenDto = DayFifteenDto(0, 0.0, 0),
-    private val installments: InstallmentsDto = InstallmentsDto(emptyList())
+    private val overview: OverviewDto = OverviewDto(
+        summary = OverviewSummaryDto(0.0, 0.0, 0.0, emptyList()),
+        accountsPayableByDayFifteen = AccountsPayableByDayFifteenDto(emptyList(), 0.0),
+        remainingInstallments = RemainingInstallmentsDto(emptyList(), 0.0)
+    ),
+    private val summary: SummaryDto = SummaryDto(0.0, 0.0, 0.0, emptyList()),
+    private val dayFifteen: DayFifteenDto = DayFifteenDto(emptyList(), 0.0),
+    private val installments: InstallmentsDto = InstallmentsDto(emptyList(), 0.0)
 ) : DashboardRepository {
     override suspend fun getOverview(): OverviewDto = overview
 

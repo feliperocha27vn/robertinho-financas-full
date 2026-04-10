@@ -5,39 +5,70 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class OverviewDto(
-    @SerialName("title") val title: String,
-    @SerialName("total_balance") val totalBalance: Double,
+    @SerialName("summary") val summary: OverviewSummaryDto,
+    @SerialName("accountsPayableByDayFifteen") val accountsPayableByDayFifteen: AccountsPayableByDayFifteenDto,
+    @SerialName("remainingInstallments") val remainingInstallments: RemainingInstallmentsDto
+)
+
+@Serializable
+data class OverviewSummaryDto(
+    @SerialName("balance") val balance: Double,
     @SerialName("income") val income: Double,
-    @SerialName("expenses") val expenses: Double
+    @SerialName("expense") val expense: Double,
+    @SerialName("recentTransactions") val recentTransactions: List<TransactionDto>
 )
 
 @Serializable
 data class SummaryDto(
-    @SerialName("period") val period: String,
-    @SerialName("category_totals") val categoryTotals: List<SummaryCategoryDto>
+    @SerialName("balance") val balance: Double,
+    @SerialName("income") val income: Double,
+    @SerialName("expense") val expense: Double,
+    @SerialName("recentTransactions") val recentTransactions: List<TransactionDto>
 )
 
 @Serializable
-data class SummaryCategoryDto(
-    @SerialName("name") val name: String,
+data class TransactionDto(
+    @SerialName("id") val id: String,
+    @SerialName("description") val description: String,
+    @SerialName("amount") val amount: Double,
+    @SerialName("category") val category: String,
+    @SerialName("date") val date: String
+)
+
+@Serializable
+data class AccountsPayableByDayFifteenDto(
+    @SerialName("accountsPayableMonth") val accountsPayableMonth: List<AccountPayableItemDto>,
+    @SerialName("totalAmountForPayByDayFifteen") val totalAmountForPayByDayFifteen: Double
+)
+
+@Serializable
+data class AccountPayableItemDto(
+    @SerialName("description") val description: String,
     @SerialName("amount") val amount: Double
 )
 
 @Serializable
 data class DayFifteenDto(
-    @SerialName("due_count") val dueCount: Int,
-    @SerialName("due_amount") val dueAmount: Double,
-    @SerialName("remaining_days") val remainingDays: Int
+    @SerialName("accountsPayableMonth") val accountsPayableMonth: List<AccountPayableItemDto>,
+    @SerialName("totalAmountForPayByDayFifteen") val totalAmountForPayByDayFifteen: Double
 )
 
 @Serializable
 data class InstallmentsDto(
-    @SerialName("items") val items: List<InstallmentItemDto>
+    @SerialName("installments") val installments: List<InstallmentItemDto>,
+    @SerialName("totalOverallRemaining") val totalOverallRemaining: Double
+)
+
+@Serializable
+data class RemainingInstallmentsDto(
+    @SerialName("installments") val installments: List<InstallmentItemDto>,
+    @SerialName("totalOverallRemaining") val totalOverallRemaining: Double
 )
 
 @Serializable
 data class InstallmentItemDto(
-    @SerialName("label") val label: String,
-    @SerialName("amount") val amount: Double,
-    @SerialName("remaining_installments") val remainingInstallments: Int
+    @SerialName("expenseDescription") val expenseDescription: String,
+    @SerialName("installmentValue") val installmentValue: Double,
+    @SerialName("remainingCount") val remainingCount: Int,
+    @SerialName("totalRemaining") val totalRemaining: Double
 )

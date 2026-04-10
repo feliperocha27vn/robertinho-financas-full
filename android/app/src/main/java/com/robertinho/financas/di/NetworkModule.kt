@@ -18,7 +18,7 @@ object NetworkModule {
     private val client: OkHttpClient = OkHttpClient.Builder()
         .addInterceptor { chain ->
             val request = chain.request().newBuilder()
-                .addHeader("x-mobile-app-token", BuildConfig.MOBILE_APP_TOKEN)
+                .addHeader("Authorization", "Bearer ${BuildConfig.MOBILE_APP_TOKEN}")
                 .build()
             chain.proceed(request)
         }

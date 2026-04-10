@@ -1,8 +1,24 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
 }
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use(::load)
+    }
+}
+
+val apiBaseUrl = localProperties.getProperty("API_BASE_URL")
+    ?: "https://robertinho.fly.dev/"
+
+val mobileAppToken = localProperties.getProperty("MOBILE_APP_TOKEN")
+    ?: System.getenv("MOBILE_APP_TOKEN")
+    ?: "dev-mobile-token"
 
 android {
     namespace = "com.robertinho.financas"
@@ -16,8 +32,8 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "API_BASE_URL", "\"https://robertinho.fly.dev/\"")
-        buildConfigField("String", "MOBILE_APP_TOKEN", "\"dev-mobile-token\"")
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+        buildConfigField("String", "MOBILE_APP_TOKEN", "\"$mobileAppToken\"")
     }
 
     buildTypes {
