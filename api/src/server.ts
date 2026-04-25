@@ -1,12 +1,13 @@
 import { app } from './app'
+import { env } from './env'
 import { startTelegramBot } from './telegram'
 
 app
   .listen({
-    port: 3333,
+    port: env.PORT,
     host: '0.0.0.0',
   })
   .then(async () => {
-    console.log('HTTP server running 🦅')
+    console.log('HTTP server running on port', env.PORT, '🦅')
     await startTelegramBot()
   })
