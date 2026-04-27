@@ -23,7 +23,7 @@ COPY . .
 # Generate Prisma client
 RUN pnpm prisma generate
 # Build the application
-ENV NODE_OPTIONS="--max-old-space-size=512"
+ENV NODE_OPTIONS="--max-old-space-size=384"
 RUN pnpm run build
 
 # Production stage
