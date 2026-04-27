@@ -19,15 +19,14 @@ export async function startTelegramBot() {
   const processMessageUseCase = makeProcessMessageUseCase()
 
   const webhookUrl = getWebhookUrl()
-  if (!webhookUrl) {
-    throw new Error(
-      'FLY_APP_NAME nao definido para configurar webhook do Telegram'
-    )
-  }
 
-  await telegramBot.deleteWebHook()
-  await telegramBot.setWebHook(webhookUrl)
-  console.log(`🤖 Telegram webhook configurado em ${webhookUrl}`)
+  if (webhookUrl) {
+    await telegramBot.deleteWebHook()
+    await telegramBot.setWebHook(webhookUrl)
+    console.log(`🤖 Telegram webhook configurado em ${webhookUrl}`)
+  } else {
+    console.log('🤖 Telegram Bot iniciando em modo polling (sem FLY_APP_NAME)')
+  }
 
   provider.onMessage(async message => {
     if (!message.rawChatId) {
@@ -53,5 +52,7 @@ export async function startTelegramBot() {
     }
   })
 
-  console.log('🤖 Telegram Bot iniciado (webhook mode)')
+  console.log(
+    `🤖 Telegram Bot iniciado (${webhookUrl ? 'webhook' : 'polling'} mode)`
+  )
 }
