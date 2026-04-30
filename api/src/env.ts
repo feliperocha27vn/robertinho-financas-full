@@ -1,14 +1,11 @@
 import z from 'zod'
 
 const envSchema = z.object({
+  NODE_ENV: z
+    .enum(['development', 'production', 'test'])
+    .default('development'),
   PORT: z.coerce.number().default(3333),
-  GEMINI_API_KEY: z.string(),
-  MOBILE_APP_TOKEN: z.string().optional(),
-  TELEGRAM_BOT_TOKEN: z.string(),
-  TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
-  CLIENT_EMAIL: z.string(),
-  PRIVATE_KEY_CALENDER: z.string(),
-  GOOGLE_PERSONAL_EMAIL: z.string(),
+  DATABASE_URL: z.string(),
 })
 
 export const env = envSchema.parse(process.env)

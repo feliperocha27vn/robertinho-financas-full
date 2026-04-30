@@ -1,13 +1,23 @@
+import { writeFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import { app } from './app'
 import { env } from './env'
-import { startTelegramBot } from './telegram'
 
 app
   .listen({
-    port: env.PORT,
+    port: process.env.PORT ? Number(process.env.PORT) : env.PORT,
     host: '0.0.0.0',
   })
-  .then(async () => {
-    console.log('HTTP server running on port', env.PORT, '🦅')
-    await startTelegramBot()
+  .then(() => {
+    console.log('HTTP server running')
   })
+
+if (env.NODE_ENV === 'development') {
+  const specFile = resolve(process.cwd(), 'swagger.json')
+  app.ready().then(() => {
+    const spec = JSON.stringify(app.swagger(), null, 2)
+    writeFile(specFile, spec).then(() => {
+      console.log('Swagger spec generated')
+    })
+  })
+}

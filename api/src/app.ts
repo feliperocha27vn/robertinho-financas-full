@@ -1,23 +1,39 @@
+import fastifyCors from '@fastify/cors'
+import fastifySwagger from '@fastify/swagger'
+import ScalarApiReference from '@scalar/fastify-api-reference'
 import fastify from 'fastify'
+import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import {
+  jsonSchemaTransform,
   serializerCompiler,
   validatorCompiler,
-  type ZodTypeProvider,
 } from 'fastify-type-provider-zod'
-import { env } from './env'
-import { mobileRoutes } from './http/mobile/routes'
-import { indexRoutes } from './http/routes/index.routes'
-import { webhookRoutes } from './http/webhook/routes'
 
 export const app = fastify().withTypeProvider<ZodTypeProvider>()
 
-app.setValidatorCompiler(validatorCompiler)
 app.setSerializerCompiler(serializerCompiler)
+app.setValidatorCompiler(validatorCompiler)
 
-app.get('/health', async (_, reply) => {
-  return reply.status(200).send({ status: 'ok' })
+app.register(fastifyCors, {
+  origin: true,
+  methods: ['GET', 'POST', 'DELETE', 'PUT', 'PATCH', 'OPTIONS'],
+  credentials: true,
 })
 
-app.register(webhookRoutes)
-app.register(indexRoutes)
-app.register(mobileRoutes)
+app.register(fastifySwagger, {
+  openapi: {
+    info: {
+      title: 'API Documentation',
+      version: '1.0.0',
+    },
+  },
+  transform: jsonSchemaTransform,
+})
+
+app.register(ScalarApiReference, {
+  routePrefix: '/docs',
+})
+
+app.get('/health', async () => {
+  return { status: 'ok', timestamp: new Date().toISOString() }
+})

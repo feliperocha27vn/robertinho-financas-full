@@ -16,6 +16,7 @@ Como usar o `docker-compose.yaml` (VPS)
 ROBERTINHO_POSTGRES_PASSWORD=uma_senha_forte
 GOOGLE_API_KEY=xxxxx
 TELEGRAM_BOT_TOKEN=seu_token_do_telegram
+MOBILE_APP_TOKEN=um_token_forte_e_aleatorio
 ```
 
 3. Suba os serviços:
@@ -33,8 +34,22 @@ docker compose logs -f robertinho-api
 
 Usando Coolify
 - No painel do Coolify: crie uma nova aplicação e cole o conteúdo do `docker-compose.yaml`.
-- Defina as variáveis obrigatórias no UI (por exemplo `DATABASE_URL`, `ROBERTINHO_POSTGRES_PASSWORD`, `GOOGLE_API_KEY`, `TELEGRAM_BOT_TOKEN`).
+- Defina as variáveis obrigatórias no UI (por exemplo `DATABASE_URL`, `ROBERTINHO_POSTGRES_PASSWORD`, `GOOGLE_API_KEY`, `TELEGRAM_BOT_TOKEN`, `MOBILE_APP_TOKEN`).
 - Configure domínios e ative TLS (Let's Encrypt) via UI.
+
+Rotas mobile de leitura (novo)
+- `GET /mobile/overview`
+- `GET /mobile/summary`
+- `GET /mobile/accounts-payable/day-fifteen`
+- `GET /mobile/installments/remaining`
+
+Essas rotas exigem header `x-mobile-app-token` com o valor de `MOBILE_APP_TOKEN`.
+
+Exemplo de teste via curl:
+
+```bash
+curl -H "x-mobile-app-token: $MOBILE_APP_TOKEN" https://robertinho.fly.dev/mobile/overview
+```
 
 Notas sobre migrations e Prisma
 - O `Dockerfile` já gera o cliente Prisma no build. O `start.sh` só roda `prisma migrate deploy` no runtime quando `RUN_MIGRATIONS=true`.
