@@ -9,7 +9,8 @@ app
     host: '0.0.0.0',
   })
   .then(() => {
-    console.log('HTTP server running')
+    console.log(`🦅 HTTP server running on port ${process.env.PORT ?? env.PORT}`),
+    console.log(`📄 Docs available at http://localhost:${process.env.PORT ?? env.PORT}/docs`)
   })
 
 if (env.NODE_ENV === 'development') {
@@ -17,7 +18,8 @@ if (env.NODE_ENV === 'development') {
   app.ready().then(() => {
     const spec = JSON.stringify(app.swagger(), null, 2)
     writeFile(specFile, spec).then(() => {
-      console.log('Swagger spec generated')
+    }).catch((err) => {
+      console.error(err)
     })
   })
 }
