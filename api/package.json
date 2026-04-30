@@ -5,12 +5,14 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch --env-file=.env src/server.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsup src/server.ts --format esm --dts --clean",
     "start": "node dist/server.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "vitest run tests/integration",
-    "test:unit": "vitest run tests/unit"
+    "lint": "biome check src/ tests/",
+    "lint:fix": "biome check --write src/ tests/",
+    "format": "biome format --write src/ tests/",
+    "check": "biome check src/ tests/"
   },
   "keywords": [],
   "author": "",

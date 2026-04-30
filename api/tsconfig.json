@@ -12,7 +12,14 @@
     "skipLibCheck": true,
     "moduleResolution": "node16",
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@factories/*": ["./src/factories/*"],
+      "@use-cases/*": ["./src/use-cases/*"],
+      "@repositories/*": ["./src/repositories/*"],
+      "@errors/*": ["./src/errors/*"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["tests", "dist", "vitest.config.ts"]
