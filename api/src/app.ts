@@ -8,6 +8,7 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from 'fastify-type-provider-zod'
+import { registerControllers } from './http/controllers'
 
 export const app = fastify().withTypeProvider<ZodTypeProvider>()
 
@@ -34,6 +35,4 @@ app.register(ScalarApiReference, {
   routePrefix: '/docs',
 })
 
-app.get('/health', async () => {
-  return { status: 'ok', timestamp: new Date().toISOString() }
-})
+registerControllers(app)

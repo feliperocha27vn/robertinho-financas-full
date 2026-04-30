@@ -22,11 +22,8 @@ describe('CreateExpenseUseCase', () => {
         category: 'TRANSPORT',
       })
     )
-    expect(result.message).toContain(
-      '✅ <b>Despesa Registrada com Sucesso!</b>'
-    )
-    expect(result.message).toContain('🏷️ <b>Categoria:</b> Transporte')
-    expect(result.message).toContain('💰 <b>Valor:</b> R$')
-    expect(result.message).toContain('📊 <b>Total parcial do mes:</b> R$')
+    expect(result.expense.description).toBe('Uber')
+    expect(result.expense.amount).toBe(50)
+    expect(result.expense.category).toBe('TRANSPORT')
   })
 })

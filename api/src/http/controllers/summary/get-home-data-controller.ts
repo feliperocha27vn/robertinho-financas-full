@@ -1,12 +1,14 @@
+import { makeGetHomeDataUseCase } from '@factories/make-get-home-data-use-case'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import z from 'zod'
-import { getContainer } from '../../container'
 
 export const getHomeDataController: FastifyPluginAsyncZod = async app => {
   app.get(
     '/summary/home',
     {
       schema: {
+        tags: ['Summary'],
+        summary: 'Get home dashboard data',
         response: {
           200: z.object({
             balance: z.number(),
@@ -25,14 +27,10 @@ export const getHomeDataController: FastifyPluginAsyncZod = async app => {
         },
       },
     },
-    async (_, reply) => {
-      try {
-        const data = await getContainer().getHomeData.execute()
-        return reply.status(200).send(data)
-      } catch (error) {
-        console.error(error)
-        throw error
-      }
+    async (_request, reply) => {
+      const useCase = makeGetHomeDataUseCase()
+      const data = await useCase.execute()
+      return reply.status(200).send(data)
     }
   )
 }
