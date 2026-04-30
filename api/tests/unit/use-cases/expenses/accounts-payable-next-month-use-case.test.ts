@@ -1,7 +1,7 @@
 import { addMonths, startOfMonth } from 'date-fns'
 import { describe, expect, it } from 'vitest'
-import { InMemoryExpensesRepository } from '../../../../src/repositories/in-memory/in-memory-expenses-repository'
-import { InMemoryInstallmentsRepository } from '../../../../src/repositories/in-memory/in-memory-installments-repository'
+import { InMemoryExpensesRepository } from '../../../../src/in-memory/in-memory-expenses-repository'
+import { InMemoryInstallmentsRepository } from '../../../../src/in-memory/in-memory-installments-repository'
 import { AccountsPayableNextMonthUseCase } from '../../../../src/use-cases/expenses/accounts-payable-next-month-use-case'
 
 describe('AccountsPayableNextMonthUseCase', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { withPrismaRetry, isTransientPrismaError } from '../../../src/lib/prisma-retry'
+import { withPrismaRetry, isTransientPrismaError } from '../../../src/utils/prisma-retry'
 
 function makeTransientError(message: string) {
   const err = new Error(message)

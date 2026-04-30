@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryExpensesRepository } from '../../../../src/repositories/in-memory/in-memory-expenses-repository'
-import { InMemoryInstallmentsRepository } from '../../../../src/repositories/in-memory/in-memory-installments-repository'
-import { InMemoryRecipesRepository } from '../../../../src/repositories/in-memory/in-memory-recipes-repository'
+import { InMemoryExpensesRepository } from '../../../../src/in-memory/in-memory-expenses-repository'
+import { InMemoryInstallmentsRepository } from '../../../../src/in-memory/in-memory-installments-repository'
+import { InMemoryRecipesRepository } from '../../../../src/in-memory/in-memory-recipes-repository'
 import { GetHomeDataUseCase } from '../../../../src/use-cases/summary/get-home-data-use-case'
 
 describe('GetHomeDataUseCase', () => {

@@ -1,13 +1,13 @@
 import { Prisma } from '@prisma/client'
-import type { ShoppingListItem } from '../../domain/finance'
-import { prisma } from '../../lib/prisma'
-import { withPrismaRetry } from '../../lib/prisma-retry'
-import { normalizeShoppingListName } from '../shared/normalize-shopping-list-name'
+import type { ShoppingListItem } from '../../../lib/types'
+import { prisma } from '../../../lib/prisma'
+import { withPrismaRetry } from '../../../utils/prisma-retry'
+import { normalizeShoppingListName } from '../../../utils/normalize-shopping-list-name'
 import type {
   AddShoppingListItemInput,
   AddShoppingListItemResult,
   ShoppingListRepository,
-} from '../contracts/shopping-list-repository'
+} from '../../contracts/shopping-list-repository'
 
 export class PrismaShoppingListRepository implements ShoppingListRepository {
   async addItem(

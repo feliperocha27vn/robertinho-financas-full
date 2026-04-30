@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryShoppingListRepository } from '../../../../src/repositories/in-memory/in-memory-shopping-list-repository'
+import { InMemoryShoppingListRepository } from '../../../../src/in-memory/in-memory-shopping-list-repository'
 import { ClearShoppingListUseCase } from '../../../../src/use-cases/shopping-list/clear-shopping-list-use-case'
 
 describe('ClearShoppingListUseCase', () => {

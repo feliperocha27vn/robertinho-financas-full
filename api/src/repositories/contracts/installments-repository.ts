@@ -1,4 +1,4 @@
-import type { InstallmentItem } from '../../domain/finance'
+import type { InstallmentItem } from '../../lib/types'
 
 export interface CreateInstallmentInput {
   expensesId: string

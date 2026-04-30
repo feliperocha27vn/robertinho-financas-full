@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import { endOfMonth, startOfMonth } from 'date-fns'
-import type { ExpenseItem } from '../../domain/finance'
+import type { ExpenseItem } from '../lib/types'
 import type {
   CreateExpenseInput,
   CreateInstallmentExpenseInput,
   ExpenseSearchItem,
   ExpenseSearchManyItem,
   ExpensesRepository,
-} from '../contracts/expenses-repository'
+} from '../repositories/contracts/expenses-repository'
 import type { InMemoryInstallmentsRepository } from './in-memory-installments-repository'
 
 export class InMemoryExpensesRepository implements ExpensesRepository {

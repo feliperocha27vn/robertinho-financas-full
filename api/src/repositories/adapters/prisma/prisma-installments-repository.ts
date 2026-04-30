@@ -1,13 +1,13 @@
 import { Prisma } from '@prisma/client'
 import { endOfMonth, startOfMonth } from 'date-fns'
-import type { InstallmentItem } from '../../domain/finance'
-import { prisma } from '../../lib/prisma'
-import { withPrismaRetry } from '../../lib/prisma-retry'
+import type { InstallmentItem } from '../../../lib/types'
+import { prisma } from '../../../lib/prisma'
+import { withPrismaRetry } from '../../../utils/prisma-retry'
 import type {
   CreateInstallmentInput,
   InstallmentsRepository,
   InstallmentWithExpenseDescription,
-} from '../contracts/installments-repository'
+} from '../../contracts/installments-repository'
 
 function toInstallmentItem(item: {
   id: string

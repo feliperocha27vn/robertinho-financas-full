@@ -1,4 +1,4 @@
-import type { TransactionType } from '../../domain/finance'
+import type { TransactionType } from '../../lib/types'
 import type { ExpensesRepository } from '../../repositories/contracts/expenses-repository'
 
 interface Input {

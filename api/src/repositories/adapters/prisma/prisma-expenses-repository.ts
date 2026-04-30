@@ -1,15 +1,15 @@
 import { Prisma } from '@prisma/client'
 import { endOfMonth, startOfMonth } from 'date-fns'
-import type { ExpenseItem } from '../../domain/finance'
-import { prisma } from '../../lib/prisma'
-import { withPrismaRetry } from '../../lib/prisma-retry'
+import type { ExpenseItem } from '../../../lib/types'
+import { prisma } from '../../../lib/prisma'
+import { withPrismaRetry } from '../../../utils/prisma-retry'
 import type {
   CreateExpenseInput,
   CreateInstallmentExpenseInput,
   ExpenseSearchItem,
   ExpenseSearchManyItem,
   ExpensesRepository,
-} from '../contracts/expenses-repository'
+} from '../../contracts/expenses-repository'
 
 export class PrismaExpensesRepository implements ExpensesRepository {
   async create(input: CreateExpenseInput): Promise<ExpenseItem> {

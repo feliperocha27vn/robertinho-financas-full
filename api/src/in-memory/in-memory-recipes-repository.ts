@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto'
-import type { RecipeItem } from '../../domain/finance'
+import type { RecipeItem } from '../lib/types'
 import type {
   CreateRecipeInput,
   RecipesRepository,
-} from '../contracts/recipes-repository'
+} from '../repositories/contracts/recipes-repository'
 
 export class InMemoryRecipesRepository implements RecipesRepository {
   public items: RecipeItem[] = []

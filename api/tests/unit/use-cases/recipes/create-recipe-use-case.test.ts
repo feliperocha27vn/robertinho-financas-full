@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryRecipesRepository } from '../../../../src/repositories/in-memory/in-memory-recipes-repository'
+import { InMemoryRecipesRepository } from '../../../../src/in-memory/in-memory-recipes-repository'
 import { CreateRecipeUseCase } from '../../../../src/use-cases/recipes/create-recipe-use-case'
 
 describe('CreateRecipeUseCase', () => {

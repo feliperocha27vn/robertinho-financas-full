@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AddShoppingListItemInput } from '../../../../src/repositories/contracts/shopping-list-repository'
-import { InMemoryShoppingListRepository } from '../../../../src/repositories/in-memory/in-memory-shopping-list-repository'
+import { InMemoryShoppingListRepository } from '../../../../src/in-memory/in-memory-shopping-list-repository'
 import { AddShoppingListItemUseCase } from '../../../../src/use-cases/shopping-list/add-shopping-list-item-use-case'
 
 describe('AddShoppingListItemUseCase', () => {

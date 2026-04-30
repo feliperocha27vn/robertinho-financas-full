@@ -1,4 +1,4 @@
-import type { RecipeItem } from '../../domain/finance'
+import type { RecipeItem } from '../../lib/types'
 
 export interface CreateRecipeInput {
   description: string

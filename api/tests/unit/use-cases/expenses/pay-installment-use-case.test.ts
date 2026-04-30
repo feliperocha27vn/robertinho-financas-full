@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryExpensesRepository } from '../../../../src/repositories/in-memory/in-memory-expenses-repository'
-import { InMemoryInstallmentsRepository } from '../../../../src/repositories/in-memory/in-memory-installments-repository'
+import { InMemoryExpensesRepository } from '../../../../src/in-memory/in-memory-expenses-repository'
+import { InMemoryInstallmentsRepository } from '../../../../src/in-memory/in-memory-installments-repository'
 import { PayInstallmentUseCase } from '../../../../src/use-cases/expenses/pay-installment-use-case'
 
 describe('PayInstallmentUseCase', () => {

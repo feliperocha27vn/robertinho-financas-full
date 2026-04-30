@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryInstallmentsRepository } from '../../../../src/repositories/in-memory/in-memory-installments-repository'
+import { InMemoryInstallmentsRepository } from '../../../../src/in-memory/in-memory-installments-repository'
 import { GetAllRemainingInstallmentsUseCase } from '../../../../src/use-cases/expenses/get-all-remaining-installments-use-case'
 
 describe('GetAllRemainingInstallmentsUseCase', () => {

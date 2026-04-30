@@ -1,4 +1,4 @@
-import type { ExpenseItem, TransactionType } from '../../domain/finance'
+import type { ExpenseItem, TransactionType } from '../../lib/types'
 
 export interface CreateExpenseInput {
   description: string

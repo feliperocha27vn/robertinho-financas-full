@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto'
 import { endOfMonth, startOfMonth } from 'date-fns'
-import type { InstallmentItem } from '../../domain/finance'
+import type { InstallmentItem } from '../lib/types'
 import type {
   CreateInstallmentInput,
   InstallmentsRepository,
   InstallmentWithExpenseDescription,
-} from '../contracts/installments-repository'
+} from '../repositories/contracts/installments-repository'
 
 export class InMemoryInstallmentsRepository implements InstallmentsRepository {
   public items: InstallmentItem[] = []

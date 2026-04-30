@@ -1,4 +1,4 @@
-import type { ShoppingListItem } from '../../domain/finance'
+import type { ShoppingListItem } from '../../lib/types'
 
 export interface AddShoppingListItemInput {
   userId: string

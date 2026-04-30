@@ -1,5 +1,5 @@
 import { endOfMonth, startOfMonth } from 'date-fns'
-import type { TransactionType } from '../../domain/finance'
+import type { TransactionType } from '../../lib/types'
 import { MessageFormatter } from '../../presenters/message-formatter'
 import type { ExpensesRepository } from '../../repositories/contracts/expenses-repository'
 

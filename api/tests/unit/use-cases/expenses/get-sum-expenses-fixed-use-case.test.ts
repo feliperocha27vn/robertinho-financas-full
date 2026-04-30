@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryExpensesRepository } from '../../../../src/repositories/in-memory/in-memory-expenses-repository'
+import { InMemoryExpensesRepository } from '../../../../src/in-memory/in-memory-expenses-repository'
 import { GetSumExpensesFixedUseCase } from '../../../../src/use-cases/expenses/get-sum-expenses-fixed-use-case'
 
 describe('GetSumExpensesFixedUseCase', () => {

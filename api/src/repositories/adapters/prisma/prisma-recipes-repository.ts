@@ -1,11 +1,11 @@
 import { Prisma } from '@prisma/client'
-import type { RecipeItem } from '../../domain/finance'
-import { prisma } from '../../lib/prisma'
-import { withPrismaRetry } from '../../lib/prisma-retry'
+import type { RecipeItem } from '../../../lib/types'
+import { prisma } from '../../../lib/prisma'
+import { withPrismaRetry } from '../../../utils/prisma-retry'
 import type {
   CreateRecipeInput,
   RecipesRepository,
-} from '../contracts/recipes-repository'
+} from '../../contracts/recipes-repository'
 
 export class PrismaRecipesRepository implements RecipesRepository {
   async create(input: CreateRecipeInput): Promise<RecipeItem> {
