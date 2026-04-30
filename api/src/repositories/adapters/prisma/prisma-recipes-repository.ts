@@ -40,4 +40,65 @@ export class PrismaRecipesRepository implements RecipesRepository {
 
     return Number(_sum.amount ?? 0)
   }
+
+  async findAll(): Promise<RecipeItem[]> {
+    const items = await withPrismaRetry(
+      () =>
+        prisma.recipes.findMany({
+          orderBy: { createdAt: 'desc' },
+        }),
+      'recipesRepository.findAll'
+    )
+
+    return items.map(item => ({
+      id: item.id,
+      description: item.description,
+      amount: Number(item.amount),
+      createdAt: item.createdAt,
+    }))
+  }
+
+  async findById(id: string): Promise<RecipeItem | null> {
+    const item = await withPrismaRetry(
+      () => prisma.recipes.findUnique({ where: { id } }),
+      'recipesRepository.findById'
+    )
+
+    if (!item) return null
+
+    return {
+      id: item.id,
+      description: item.description,
+      amount: Number(item.amount),
+      createdAt: item.createdAt,
+    }
+  }
+
+  async update(id: string, input: CreateRecipeInput): Promise<RecipeItem> {
+    const updated = await withPrismaRetry(
+      () =>
+        prisma.recipes.update({
+          where: { id },
+          data: {
+            description: input.description,
+            amount: new Prisma.Decimal(input.amount),
+          },
+        }),
+      'recipesRepository.update'
+    )
+
+    return {
+      id: updated.id,
+      description: updated.description,
+      amount: Number(updated.amount),
+      createdAt: updated.createdAt,
+    }
+  }
+
+  async delete(id: string): Promise<void> {
+    await withPrismaRetry(
+      () => prisma.recipes.delete({ where: { id } }),
+      'recipesRepository.delete'
+    )
+  }
 }

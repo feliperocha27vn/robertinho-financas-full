@@ -25,4 +25,26 @@ export class InMemoryRecipesRepository implements RecipesRepository {
       .filter(item => item.createdAt >= start && item.createdAt <= end)
       .reduce((total, item) => total + item.amount, 0)
   }
+
+  async findAll(): Promise<RecipeItem[]> {
+    return [...this.items].sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    )
+  }
+
+  async findById(id: string): Promise<RecipeItem | null> {
+    return this.items.find(item => item.id === id) ?? null
+  }
+
+  async update(id: string, input: CreateRecipeInput): Promise<RecipeItem> {
+    const item = this.items.find(i => i.id === id)
+    if (!item) throw new Error('Recipe not found')
+    item.description = input.description
+    item.amount = input.amount
+    return item
+  }
+
+  async delete(id: string): Promise<void> {
+    this.items = this.items.filter(item => item.id !== id)
+  }
 }

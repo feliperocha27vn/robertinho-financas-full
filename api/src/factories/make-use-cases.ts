@@ -19,6 +19,7 @@ import { UpdateExpenseAmountUseCase } from '../use-cases/expenses/update-expense
 import { AddShoppingListItemUseCase } from '../use-cases/shopping-list/add-shopping-list-item-use-case'
 import { ClearShoppingListUseCase } from '../use-cases/shopping-list/clear-shopping-list-use-case'
 import { GetShoppingListUseCase } from '../use-cases/shopping-list/get-shopping-list-use-case'
+import { CreateRecipeUseCase } from '../use-cases/recipes/create-recipe-use-case'
 import { repositories } from './make-repositories'
 
 function makeExpensesUseCases() {
@@ -92,5 +93,12 @@ function makeShoppingListUseCases() {
   }
 }
 
+function makeRecipesUseCases() {
+  return {
+    createRecipe: new CreateRecipeUseCase(repositories.recipes),
+  }
+}
+
 export const expensesUseCases = makeExpensesUseCases()
 export const shoppingListUseCases = makeShoppingListUseCases()
+export const recipesUseCases = makeRecipesUseCases()

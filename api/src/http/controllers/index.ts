@@ -18,6 +18,11 @@ import { unpayExpenseController } from './expenses/unpay-expense-controller'
 import { updateExpenseAmountController } from './expenses/update-expense-amount-controller'
 import { deleteVariableExpenseController } from './expenses/delete-variable-expense-controller'
 import { deleteAllVariableExpensesController } from './expenses/delete-all-variable-expenses-controller'
+import { createRecipeController } from './recipes/create-recipe-controller'
+import { fetchRecipesController } from './recipes/fetch-recipes-controller'
+import { getRecipeController } from './recipes/get-recipe-controller'
+import { updateRecipeController } from './recipes/update-recipe-controller'
+import { deleteRecipeController } from './recipes/delete-recipe-controller'
 
 export function registerControllers(app: FastifyInstance) {
   app.register(healthController)
@@ -39,4 +44,9 @@ export function registerControllers(app: FastifyInstance) {
   app.register(updateExpenseAmountController)
   app.register(deleteVariableExpenseController)
   app.register(deleteAllVariableExpensesController)
+  app.register(createRecipeController)
+  app.register(fetchRecipesController)
+  app.register(getRecipeController)
+  app.register(updateRecipeController)
+  app.register(deleteRecipeController)
 }
