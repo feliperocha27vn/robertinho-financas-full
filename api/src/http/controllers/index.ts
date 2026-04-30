@@ -23,6 +23,9 @@ import { fetchRecipesController } from './recipes/fetch-recipes-controller'
 import { getRecipeController } from './recipes/get-recipe-controller'
 import { updateRecipeController } from './recipes/update-recipe-controller'
 import { deleteRecipeController } from './recipes/delete-recipe-controller'
+import { addShoppingListItemController } from './shopping-list/add-item-controller'
+import { fetchShoppingListController } from './shopping-list/fetch-items-controller'
+import { clearShoppingListController } from './shopping-list/clear-items-controller'
 
 export function registerControllers(app: FastifyInstance) {
   app.register(healthController)
@@ -49,4 +52,7 @@ export function registerControllers(app: FastifyInstance) {
   app.register(getRecipeController)
   app.register(updateRecipeController)
   app.register(deleteRecipeController)
+  app.register(addShoppingListItemController)
+  app.register(fetchShoppingListController)
+  app.register(clearShoppingListController)
 }
