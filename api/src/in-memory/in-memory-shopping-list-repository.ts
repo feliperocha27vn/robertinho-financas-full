@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto'
 import type { ShoppingListItem } from '../lib/types'
-import { normalizeShoppingListName } from '../utils/normalize-shopping-list-name'
 import type {
   AddShoppingListItemInput,
   AddShoppingListItemResult,
   ShoppingListRepository,
 } from '../repositories/contracts/shopping-list-repository'
+import { normalizeShoppingListName } from '../utils/normalize-shopping-list-name'
 
 export class InMemoryShoppingListRepository implements ShoppingListRepository {
   public items: ShoppingListItem[] = []

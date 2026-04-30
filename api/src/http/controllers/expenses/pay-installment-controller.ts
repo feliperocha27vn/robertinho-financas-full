@@ -1,5 +1,5 @@
-import { expensesUseCases } from '@factories/make-use-cases'
 import { ResourceNotFoundError } from '@errors/resource-not-found-error'
+import { expensesUseCases } from '@factories/make-use-cases'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import z from 'zod'
 

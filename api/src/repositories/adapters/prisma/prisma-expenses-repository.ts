@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client'
 import { endOfMonth, startOfMonth } from 'date-fns'
-import type { ExpenseItem } from '../../../lib/types'
 import { prisma } from '../../../lib/prisma'
+import type { ExpenseItem } from '../../../lib/types'
 import { withPrismaRetry } from '../../../utils/prisma-retry'
 import type {
   CreateExpenseInput,

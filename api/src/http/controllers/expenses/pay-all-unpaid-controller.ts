@@ -18,8 +18,7 @@ export const payAllUnpaidController: FastifyPluginAsyncZod = async app => {
       },
     },
     async (_request, reply) => {
-      const data =
-        await expensesUseCases.payAllUnpaidCurrentMonth.execute()
+      const data = await expensesUseCases.payAllUnpaidCurrentMonth.execute()
       return reply.status(200).send(data)
     }
   )

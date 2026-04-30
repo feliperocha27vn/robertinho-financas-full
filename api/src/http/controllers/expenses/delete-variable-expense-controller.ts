@@ -9,8 +9,7 @@ export const deleteVariableExpenseController: FastifyPluginAsyncZod =
       {
         schema: {
           tags: ['Expenses'],
-          summary:
-            'Delete variable expense by name (current month only)',
+          summary: 'Delete variable expense by name (current month only)',
           body: z.object({
             nameExpense: z.string().min(1),
             selectedExpenseId: z.string().uuid().optional(),
@@ -40,11 +39,12 @@ export const deleteVariableExpenseController: FastifyPluginAsyncZod =
       },
       async (request, reply) => {
         const { nameExpense, selectedExpenseId } = request.body
-        const data =
-          await expensesUseCases.deleteVariableExpenseByName.execute({
+        const data = await expensesUseCases.deleteVariableExpenseByName.execute(
+          {
             nameExpense,
             selectedExpenseId,
-          })
+          }
+        )
         return reply.status(200).send(data)
       }
     )

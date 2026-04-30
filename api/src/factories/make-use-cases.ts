@@ -16,10 +16,10 @@ import { PayExpensesByNamesUseCase } from '../use-cases/expenses/pay-expenses-by
 import { PayInstallmentUseCase } from '../use-cases/expenses/pay-installment-use-case'
 import { UnpayExpenseUseCase } from '../use-cases/expenses/unpay-expense-use-case'
 import { UpdateExpenseAmountUseCase } from '../use-cases/expenses/update-expense-amount-use-case'
+import { CreateRecipeUseCase } from '../use-cases/recipes/create-recipe-use-case'
 import { AddShoppingListItemUseCase } from '../use-cases/shopping-list/add-shopping-list-item-use-case'
 import { ClearShoppingListUseCase } from '../use-cases/shopping-list/clear-shopping-list-use-case'
 import { GetShoppingListUseCase } from '../use-cases/shopping-list/get-shopping-list-use-case'
-import { CreateRecipeUseCase } from '../use-cases/recipes/create-recipe-use-case'
 import { repositories } from './make-repositories'
 
 function makeExpensesUseCases() {
@@ -39,11 +39,10 @@ function makeExpensesUseCases() {
       repositories.expenses,
       repositories.installments
     ),
-    getUnpaidExpensesOfCurrentMonth:
-      new GetUnpaidExpensesOfCurrentMonthUseCase(
-        repositories.expenses,
-        repositories.installments
-      ),
+    getUnpaidExpensesOfCurrentMonth: new GetUnpaidExpensesOfCurrentMonthUseCase(
+      repositories.expenses,
+      repositories.installments
+    ),
     getRemainingInstallments: new GetRemainingInstallmentsUseCase(
       repositories.expenses,
       repositories.installments

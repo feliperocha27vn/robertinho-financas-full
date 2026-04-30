@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { AddShoppingListItemInput } from '../../../../src/repositories/contracts/shopping-list-repository'
 import { InMemoryShoppingListRepository } from '../../../../src/in-memory/in-memory-shopping-list-repository'
+import type { AddShoppingListItemInput } from '../../../../src/repositories/contracts/shopping-list-repository'
 import { AddShoppingListItemUseCase } from '../../../../src/use-cases/shopping-list/add-shopping-list-item-use-case'
 
 describe('AddShoppingListItemUseCase', () => {
@@ -66,7 +66,10 @@ describe('AddShoppingListItemUseCase', () => {
     const result = await sut.execute({ userId: 'u1', name: 'cafe' })
 
     expect(result.status).toBe('already_exists')
-    if (result.status === 'already_exists' && firstResult.status === 'created') {
+    if (
+      result.status === 'already_exists' &&
+      firstResult.status === 'created'
+    ) {
       expect(result.item).toMatchObject({
         id: firstResult.item.id,
         userId: 'u1',

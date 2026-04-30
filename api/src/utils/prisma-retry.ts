@@ -1,6 +1,4 @@
-const TRANSIENT_ERROR_NAMES = new Set([
-  'PrismaClientInitializationError',
-])
+const TRANSIENT_ERROR_NAMES = new Set(['PrismaClientInitializationError'])
 
 const TRANSIENT_ERROR_CODES = new Set(['P1001'])
 

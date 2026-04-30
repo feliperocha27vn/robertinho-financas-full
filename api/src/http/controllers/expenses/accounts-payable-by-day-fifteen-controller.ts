@@ -24,8 +24,7 @@ export const accountsPayableByDayFifteenController: FastifyPluginAsyncZod =
         },
       },
       async (_request, reply) => {
-        const data =
-          await expensesUseCases.accountsToPayByDayFifteen.execute()
+        const data = await expensesUseCases.accountsToPayByDayFifteen.execute()
         return reply.status(200).send(data)
       }
     )

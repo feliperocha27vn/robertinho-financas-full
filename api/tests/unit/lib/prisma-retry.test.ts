@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { withPrismaRetry, isTransientPrismaError } from '../../../src/utils/prisma-retry'
+import {
+  isTransientPrismaError,
+  withPrismaRetry,
+} from '../../../src/utils/prisma-retry'
 
 function makeTransientError(message: string) {
   const err = new Error(message)
@@ -18,7 +21,9 @@ function makePermanentError(message: string) {
 
 describe('isTransientPrismaError', () => {
   it('returns true for PrismaClientInitializationError with unreachable db message', () => {
-    const err = makeTransientError("Can't reach database server at `ep-super-violet-acv7jft3-pooler.sa-east-1.aws.neon.tech:5432`")
+    const err = makeTransientError(
+      "Can't reach database server at `ep-super-violet-acv7jft3-pooler.sa-east-1.aws.neon.tech:5432`"
+    )
     expect(isTransientPrismaError(err)).toBe(true)
   })
 

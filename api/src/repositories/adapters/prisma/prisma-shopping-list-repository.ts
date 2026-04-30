@@ -1,8 +1,8 @@
 import { Prisma } from '@prisma/client'
-import type { ShoppingListItem } from '../../../lib/types'
 import { prisma } from '../../../lib/prisma'
-import { withPrismaRetry } from '../../../utils/prisma-retry'
+import type { ShoppingListItem } from '../../../lib/types'
 import { normalizeShoppingListName } from '../../../utils/normalize-shopping-list-name'
+import { withPrismaRetry } from '../../../utils/prisma-retry'
 import type {
   AddShoppingListItemInput,
   AddShoppingListItemResult,

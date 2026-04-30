@@ -34,8 +34,12 @@ describe('GetShoppingListUseCase', () => {
     await shoppingListRepository.addItem({ userId: 'u1', name: 'Cafe' })
     await shoppingListRepository.addItem({ userId: 'u1', name: 'Leite' })
 
-    shoppingListRepository.items[0]!.createdAt = new Date('2026-01-01T10:00:00.000Z')
-    shoppingListRepository.items[1]!.createdAt = new Date('2026-01-01T12:00:00.000Z')
+    shoppingListRepository.items[0]!.createdAt = new Date(
+      '2026-01-01T10:00:00.000Z'
+    )
+    shoppingListRepository.items[1]!.createdAt = new Date(
+      '2026-01-01T12:00:00.000Z'
+    )
 
     const result = await sut.execute({ userId: 'u1' })
 

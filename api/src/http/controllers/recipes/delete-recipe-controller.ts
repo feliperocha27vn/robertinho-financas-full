@@ -21,9 +21,7 @@ export const deleteRecipeController: FastifyPluginAsyncZod = async app => {
 
       const existing = await repositories.recipes.findById(id)
       if (!existing) {
-        return reply
-          .status(404)
-          .send({ message: 'Recipe not found' })
+        return reply.status(404).send({ message: 'Recipe not found' })
       }
 
       await repositories.recipes.delete(id)

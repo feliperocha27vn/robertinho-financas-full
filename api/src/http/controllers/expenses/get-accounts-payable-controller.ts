@@ -24,8 +24,7 @@ export const getAccountsPayableController: FastifyPluginAsyncZod =
         },
       },
       async (_request, reply) => {
-        const data =
-          await expensesUseCases.accountsPayableNextMonth.execute()
+        const data = await expensesUseCases.accountsPayableNextMonth.execute()
         return reply.status(200).send(data)
       }
     )

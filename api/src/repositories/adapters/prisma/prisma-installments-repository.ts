@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client'
 import { endOfMonth, startOfMonth } from 'date-fns'
-import type { InstallmentItem } from '../../../lib/types'
 import { prisma } from '../../../lib/prisma'
+import type { InstallmentItem } from '../../../lib/types'
 import { withPrismaRetry } from '../../../utils/prisma-retry'
 import type {
   CreateInstallmentInput,

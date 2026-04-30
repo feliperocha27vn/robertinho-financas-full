@@ -11,9 +11,7 @@ export class UnpayExpenseUseCase {
     private readonly installmentsRepository: InstallmentsRepository
   ) {}
 
-  async execute(
-    input: Input
-  ): Promise<{
+  async execute(input: Input): Promise<{
     found: boolean
     success?: boolean
     alreadyUnpaid?: boolean

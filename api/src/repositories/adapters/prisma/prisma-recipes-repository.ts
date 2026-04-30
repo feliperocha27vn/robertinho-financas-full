@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client'
-import type { RecipeItem } from '../../../lib/types'
 import { prisma } from '../../../lib/prisma'
+import type { RecipeItem } from '../../../lib/types'
 import { withPrismaRetry } from '../../../utils/prisma-retry'
 import type {
   CreateRecipeInput,

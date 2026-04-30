@@ -1,5 +1,5 @@
-import { repositories } from '@factories/make-repositories'
 import { ResourceNotFoundError } from '@errors/resource-not-found-error'
+import { repositories } from '@factories/make-repositories'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import z from 'zod'
 
@@ -34,9 +34,7 @@ export const updateRecipeController: FastifyPluginAsyncZod = async app => {
 
       const existing = await repositories.recipes.findById(id)
       if (!existing) {
-        return reply
-          .status(404)
-          .send({ message: 'Recipe not found' })
+        return reply.status(404).send({ message: 'Recipe not found' })
       }
 
       const recipe = await repositories.recipes.update(id, {
