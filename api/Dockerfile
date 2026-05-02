@@ -29,8 +29,8 @@ RUN pnpm run build
 # Production stage
 FROM base AS production
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install runtime dependencies
+RUN apk add --no-cache dumb-init curl
 
 # Create a non-root user
 RUN addgroup -g 1001 -S nodejs
@@ -59,7 +59,7 @@ EXPOSE 3334
 
 # Add healthcheck
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget -4 -q --spider http://localhost:3334/health || exit 1
+  CMD curl -f http://localhost:3334/health || exit 1
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
