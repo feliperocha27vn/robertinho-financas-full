@@ -59,7 +59,7 @@ EXPOSE 3334
 
 # Add healthcheck
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3334/health || exit 1
+  CMD wget -4 -q --spider http://localhost:3334/health || exit 1
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
