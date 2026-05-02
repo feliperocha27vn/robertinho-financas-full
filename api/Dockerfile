@@ -50,19 +50,16 @@ RUN npx -y prisma@6.16.3 generate
 # Copy built application from build stage
 COPY --from=build /app/dist ./dist
 
-# Copy prompt text files (read at runtime by build-system-context.ts)
-COPY --from=build /app/src/providers/ai/system/*.txt ./dist/providers/ai/system/
-
 # Change ownership to nodejs user
 RUN chown -R nodejs:nodejs /app
 USER nodejs
 
 # Expose the port the app runs on
-EXPOSE 3333
+EXPOSE 3334
 
 # Add healthcheck
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3333/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3334/health || exit 1
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
